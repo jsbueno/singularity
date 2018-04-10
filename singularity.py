@@ -88,12 +88,14 @@ class Engine:
 
 
 class Meta(type):
+    registry = {}
     def __new__(metacls, name, bases, dct):
         for name, value in dct.items():
             if isinstance(value, Field):
                 value.name = name
         cls = type.__new__(metacls, name, bases, dct)
         cls._manager = SingularityManager(cls)
+        registry.setdefault(name, []).append(cls)
         return cls
 
 
@@ -109,6 +111,7 @@ class SingularityManager:
         for field in sorted((f for f in self.owner.__dict__.values() if isinstance(f, Field)), key=lambda f: f.counter):
             schema[field.name] = field.type_
         return schema
+
 
 class Base(metaclass=Meta):
 
