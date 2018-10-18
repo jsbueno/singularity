@@ -1,0 +1,19 @@
+1. field descriptor/data_classes
+2. declarative data classes - for nested fields buildable in one line
+3. specialize data types
+4. namespace acessor  for dotted attributes
+5. mapping-like access for dotted attributes
+6. JSON import/export
+6. reactive fields
+7. postgresql JSONB persistense
+8. Schema JSON import/export
+8.5.  workflow
+
+9. Python code generation from Schema.
+10. Django-model dynamic generation
+11. SQLAlchemy-model dynamic genreation
+12. Colander/DjangoForms dynamic generation
+13. Captain'Proto interoperation
+
+
+
