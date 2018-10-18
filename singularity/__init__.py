@@ -32,7 +32,7 @@ class StringField(Field):
 
     def __set__(self, instance, value):
         if self.options and not value in self.options:
-            raise TypeError(f"Value must be set to one of {self.options!r}")
+            raise ValueError(f"Value must be set to one of {self.options!r}")
         return super().__set__(instance, value)
 
 
@@ -115,8 +115,28 @@ class ComputedField(Field):
         self.setter(instance, value)
 
 
+class DataContainer2:
+    def __init__(self, parent, instance, owner):
+        self._parent = parent
+        self._instance = instance
+        self._owner = owner
+
+    def __getattr__(self, attr):
+        if attr not in self._owner.m.fields:
+            raise AttributeError
+        attr = self._parent.__dict__[attr]
+        return attr.__get__(self._instance, self._owner)
+
+    def __setattr__(self, attr, value):
+        if attr in ["_parent",  "_instance",  "_owner"] or attr not in self._owner.m.fields:
+            return super().__setattr__(attr, value)
+        attr = self._parent.__dict__[attr]
+        attr.__set__(self._instance, value)
+
+
 class DataContainer:
-    pass
+    def __get__(self, instance, owner):
+        return DataContainer2(parent=self, instance=instance, owner=owner)
 
 
 def mro_list(cls):
@@ -137,14 +157,22 @@ class Base:
             setattr(self, field_name, arg)
 
 
-    def __init_subclass__(cls, **kwargs):
+    def __init_subclass__(cls, strict=False, **kwargs):
         super().__init_subclass__(**kwargs)
 
         fields = []
+        cls.d = DataContainer()
         for attr_name in mro_list(cls):
             attr = getattr(cls, attr_name)
             if isinstance(attr, Field) and not attr_name in fields:
                 fields.append(attr_name)
+                cls.__dict__["d"].__dict__[attr_name] = attr
+                if strict:
+                    try:
+                        pass
+                        # del cls.__dict__[attr_name]
+                    except AttributeError:
+                        pass
 
         cls.m = SimpleNamespace()
         cls.m.fields = fields
