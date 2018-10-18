@@ -48,7 +48,7 @@ class DateTimeField(Field):
     type = datetime.datetime
 
 
-def TypedSequence(MutableSequence):
+class TypedSequence(MutableSequence):
     def __init__(self, type_, initial_values=None):
         self.type = type_
         self._data = []
@@ -73,7 +73,7 @@ def TypedSequence(MutableSequence):
     def __delitem__(self, index):
         self._data.__delitem__(index)
 
-    def __len__(self, index):
+    def __len__(self):
         return len(self._data)
 
     def insert(self, index, value):
@@ -90,10 +90,29 @@ class ListField(Field):
         super().__init__(**kwargs)
 
     def __get__(self, instance, owner):
+        if not instance:
+            return self
         return instance._data.setdefault(self.name, TypedSequence(self.type))
 
     def __set__(self, instance, value):
         raise TypeError(f"ListFields can't be set!")
+
+
+class ComputedField(Field):
+    def __init__(self, getter, setter=None, **kwargs):
+        super().__init__(**kwargs)
+        self.getter = getter
+        self.setter = setter
+
+    def __get__(self, instance, owner):
+        if not instance:
+            return self
+        return self.getter(instance)
+
+    def __set__(self, instance, value):
+        if not self.setter:
+            raise TypeError("Attribute not setable")
+        self.setter(instance, value)
 
 
 class DataContainer:
