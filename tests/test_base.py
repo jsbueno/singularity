@@ -87,3 +87,19 @@ def test_list_field_dont_accept_wrong_type(person):
     with pytest.raises(TypeError):
         person.pets.append(1)
 
+
+def test_json_serializing(dog, person):
+    dog_json = {
+        'name': 'Rex',
+        'species': 'dog',
+        'birthday': '2015-01-01',
+        'age': 3   # FIXME: this will break on 2019-01-01 - insert meta values to select which fields are serializable
+    }
+    person_json = {
+
+    }
+    assert dog.m.json() == dog_json
+    assert person.m.json() == {
+        "name": "João",
+        "pets": [dog_json]
+    }

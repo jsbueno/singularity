@@ -1,6 +1,8 @@
 from collections.abc import Sequence, MutableSequence
+from functools import lru_cache
 from types import SimpleNamespace
 import datetime
+import json
 import numbers
 
 
@@ -23,6 +25,9 @@ class Field:
         self.owner = owner
         self.name = name
 
+    def json(self, value):
+        return value
+
 
 class StringField(Field):
     type = str
@@ -43,10 +48,14 @@ class NumberField(Field):
 class DateField(Field):
     type = datetime.date
 
+    def json(self, value):
+        return value.isoformat()
 
 class DateTimeField(Field):
     type = datetime.datetime
 
+    def json(self, value):
+        return value.isoformat()
 
 class TypedSequence(MutableSequence):
     def __init__(self, type_, initial_values=None):
@@ -96,6 +105,13 @@ class ListField(Field):
 
     def __set__(self, instance, value):
         raise TypeError(f"ListFields can't be set!")
+
+    def json(self, value):
+        if hasattr(self.type, "json"):
+            return [self.type.json(item) for item in value]
+        if hasattr(self.type, "m"):
+            return [item.m.json() for item in value]
+        return value
 
 
 class ComputedField(Field):
@@ -147,6 +163,30 @@ def mro_list(cls):
             yield attr_name
 
 
+class Instrumentation:
+    def _bind(self, parent_instance):
+        instance = type(self)()
+        # TODO: use a cascading dict:
+        instance.__dict__ = self.__dict__.copy()
+        instance.parent = parent_instance
+        return instance
+
+
+    def json(self, serialize=False):
+        result = {}
+        for field_name, field in self.fields.items():
+            value = getattr(self.parent, field_name)
+            result[field_name] = field.json(value)
+        return result if not serialize else json.dumps(result)
+
+
+    @lru_cache()
+    def __get__(self, instance, owner):
+        if instance is None:
+            return self
+        return self._bind(instance)
+
+
 class Base:
     def __init__(self, *args, **kwargs):
         self._data = {}
@@ -160,12 +200,12 @@ class Base:
     def __init_subclass__(cls, strict=False, **kwargs):
         super().__init_subclass__(**kwargs)
 
-        fields = []
+        fields = {}
         cls.d = DataContainer()
         for attr_name in mro_list(cls):
             attr = getattr(cls, attr_name)
             if isinstance(attr, Field) and not attr_name in fields:
-                fields.append(attr_name)
+                fields[attr_name] = attr
                 cls.__dict__["d"].__dict__[attr_name] = attr
                 if strict:
                     try:
@@ -174,7 +214,7 @@ class Base:
                     except AttributeError:
                         pass
 
-        cls.m = SimpleNamespace()
+        cls.m = Instrumentation()
         cls.m.fields = fields
 
     def __repr__(self):
