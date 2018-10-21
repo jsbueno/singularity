@@ -42,24 +42,34 @@ def test_declare_strict_dataclass():
 
 
 @pytest.fixture
-def dog():
+def pet_cls():
     class Pet(S.Base):
         name = S.StringField()
         species = S.StringField(options="cat dog other".split())
         birthday = S.DateField()
         age = S.ComputedField(lambda self: (date.today() - self.d.birthday).days // 365)
 
-    return Pet("Rex", "dog", date(2015, 1, 1))
+    return Pet
+
 
 @pytest.fixture
-def person(dog):
+def dog(pet_cls):
+    return pet_cls("Rex", "dog", date(2015, 1, 1))
+
+
+@pytest.fixture
+def person_cls(pet_cls):
     class Person(S.Base):
         name = S.StringField()
-        pets = S.ListField(type(dog))
+        pets = S.ListField(pet_cls)
 
-    pe = Person("João")
+    return Person
+
+
+@pytest.fixture
+def person(person_cls, dog):
+    pe = person_cls("João")
     pe.d.pets.append(dog)
-
     return pe
 
 
