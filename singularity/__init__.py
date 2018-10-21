@@ -14,7 +14,10 @@ class Field:
     def __get__(self, instance, owner):
         if not instance:
             return self
-        return instance._data[self.name]
+        try:
+            return instance._data[self.name]
+        except KeyError as error:
+            raise AttributeError from error
 
     def __set__(self, instance, value):
         if not isinstance(value, self.type):
@@ -94,7 +97,7 @@ class TypedSequence(MutableSequence):
 
 
 class ListField(Field):
-    def __init__(self, type_=object, **kwargs):
+    def __init__(self, type_=object,**kwargs):
         self.type = type_
         super().__init__(**kwargs)
 
@@ -166,10 +169,12 @@ class Instrumentation:
 
 
     def json(self, serialize=False):
+        sentinel = object()
         result = {}
         for field_name, field in self.fields.items():
-            value = getattr(self.parent.d, field_name)
-            result[field_name] = field.json(value)
+            value = getattr(self.parent.d, field_name, sentinel)
+            if value is not sentinel:
+                result[field_name] = field.json(value)
         return result if not serialize else json.dumps(result)
 
 

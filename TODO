@@ -1,10 +1,19 @@
+DONE
+
 1. field descriptor/data_classes
-2. declarative data classes - for nested fields buildable in one line
 3. specialize data types
 4. namespace acessor  for dotted attributes
-5. mapping-like access for dotted attributes
-6. JSON import/export
+5. JSON export
 6. reactive fields
+
+TODO
+
+Field handling of default/mandatory values
+StringField Lenght parameters
+
+2. declarative data classes - for nested fields buildable in one line
+5. mapping-like access for dotted attributes
+6. JSON import
 7. postgresql JSONB persistense
 8. Schema JSON import/export
 8.5.  workflow

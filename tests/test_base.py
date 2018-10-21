@@ -114,3 +114,10 @@ def test_json_serializing(dog, person):
         "name": "João",
         "pets": [dog_json]
     }
+
+
+def test_json_serializing_incomplete_object(person_cls):
+    p = person_cls()
+    assert p.m.json() == {
+        "pets": []
+    }
