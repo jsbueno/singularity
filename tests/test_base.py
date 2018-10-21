@@ -19,8 +19,8 @@ def test_declare_dataclass():
     assert p.species == "dog"
     assert p.birthday == date(2015, 1, 1)
 
-@pytest.mark.skip
-def test_declare_dataclass():
+
+def test_declare_strict_dataclass():
     class Pet(S.Base, strict=True):
         name = S.StringField()
         species = S.StringField(options="cat dog other".split())
@@ -47,7 +47,7 @@ def dog():
         name = S.StringField()
         species = S.StringField(options="cat dog other".split())
         birthday = S.DateField()
-        age = S.ComputedField(lambda self: (date.today() - self.birthday).days // 365)
+        age = S.ComputedField(lambda self: (date.today() - self.d.birthday).days // 365)
 
     return Pet("Rex", "dog", date(2015, 1, 1))
 
@@ -58,17 +58,18 @@ def person(dog):
         pets = S.ListField(type(dog))
 
     pe = Person("João")
-    pe.pets.append(dog)
+    pe.d.pets.append(dog)
 
     return pe
 
 
 def test_computed_field(dog):
-    assert dog.age == (date.today().year - 2015)
+    assert dog.d.age == (date.today().year - 2015)
+
 
 def test_str_field_with_options_error_on_unknown_option(dog):
     with pytest.raises(ValueError):
-        dog.species = "lemur"
+        dog.d.species = "lemur"
 
 
 def test_declare_nested_dataclass(dog):
@@ -78,14 +79,14 @@ def test_declare_nested_dataclass(dog):
         pets = S.ListField(type(dog))
 
     pe = Person("João")
-    pe.pets.append(dog)
+    pe.d.pets.append(dog)
 
-    assert pe.pets[0].name == 'Rex'
+    assert pe.d.pets[0].name == 'Rex'
 
 
 def test_list_field_dont_accept_wrong_type(person):
     with pytest.raises(TypeError):
-        person.pets.append(1)
+        person.d.pets.append(1)
 
 
 def test_json_serializing(dog, person):

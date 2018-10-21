@@ -151,16 +151,9 @@ class DataContainer2:
 
 
 class DataContainer:
+    @lru_cache()
     def __get__(self, instance, owner):
         return DataContainer2(parent=self, instance=instance, owner=owner)
-
-
-def mro_list(cls):
-    for supercls in cls.__mro__[::-1]:
-        for attr_name in supercls.__dict__.keys():
-            if attr_name[:2] == "__" and attr_name[-2:] == "__":
-                continue
-            yield attr_name
 
 
 class Instrumentation:
@@ -175,7 +168,7 @@ class Instrumentation:
     def json(self, serialize=False):
         result = {}
         for field_name, field in self.fields.items():
-            value = getattr(self.parent, field_name)
+            value = getattr(self.parent.d, field_name)
             result[field_name] = field.json(value)
         return result if not serialize else json.dumps(result)
 
@@ -187,35 +180,52 @@ class Instrumentation:
         return self._bind(instance)
 
 
-class Base:
+def parent_field_list(bases):
+    for base in bases:
+        if not isinstance(base, Meta):
+            continue
+        for field_name, field in base.m.fields:
+            yield field_name, field
+
+
+class Meta(type):
+    def __new__(metacls, name, bases, attrs, strict=False, **kwargs):
+
+        container = DataContainer()
+        for field_name, field in parent_field_list(bases):
+            fields[field_name] = field
+            container.__dict__[field_name] = field
+
+        for attr_name, value in list(attrs.items()):
+            if isinstance(value, Field):
+                container.__dict__[attr_name] = value
+                if strict:
+                    del attrs[attr_name]
+
+        cls = super().__new__(metacls, name, bases, attrs, **kwargs)
+
+        cls.d = container
+        cls.m = Instrumentation()
+        cls.m.fields = container.__dict__
+
+        for field_name, field in cls.m.fields.items():
+            field.__set_name__(cls, field_name)
+
+        return cls
+
+
+class Base(metaclass=Meta):
     def __init__(self, *args, **kwargs):
         self._data = {}
+        seem = set()
         for field_name, arg in zip(self.m.fields, args):
-            setattr(self, field_name, arg)
+            setattr(self.d, field_name, arg)
+            seem.add(field_name)
 
         for field_name, arg in kwargs.items():
+            if field_name in seem:
+                raise TypeError(f"Argument {field_name!r} passed twice")
             setattr(self, field_name, arg)
-
-
-    def __init_subclass__(cls, strict=False, **kwargs):
-        super().__init_subclass__(**kwargs)
-
-        fields = {}
-        cls.d = DataContainer()
-        for attr_name in mro_list(cls):
-            attr = getattr(cls, attr_name)
-            if isinstance(attr, Field) and not attr_name in fields:
-                fields[attr_name] = attr
-                cls.__dict__["d"].__dict__[attr_name] = attr
-                if strict:
-                    try:
-                        pass
-                        # del cls.__dict__[attr_name]
-                    except AttributeError:
-                        pass
-
-        cls.m = Instrumentation()
-        cls.m.fields = fields
 
     def __repr__(self):
         return "{0}({1})".format(
