@@ -5,6 +5,8 @@ import datetime
 import json
 import numbers
 
+import dateparser
+
 
 
 class Field:
@@ -54,11 +56,28 @@ class DateField(Field):
     def json(self, value):
         return value.isoformat()
 
+    @classmethod
+    def from_json(cls, value):
+        try:
+            year, day, month = map(int, value.split('-'))
+            return datetime.date(year, day, month)
+        except (TypeError, ValueError):
+            raise ValueError(f"Invalid date string {value!r}")
+
+
 class DateTimeField(Field):
     type = datetime.datetime
 
     def json(self, value):
         return value.isoformat()
+
+    @classmethod
+    def from_json(cls, value):
+        try:
+            return dateparser.parse(value)
+        except ValueError:
+            raise ValueError(f"Invalid datetime string {value!r}")
+
 
 class TypedSequence(MutableSequence):
     def __init__(self, type_, initial_values=None):
@@ -116,6 +135,14 @@ class ListField(Field):
             return [item.m.json() for item in value]
         return value
 
+    @classmethod
+    def from_json(self, value):
+        if hasattr(self.type, "from_json"):
+            return [self.type.from_json(item) for item in value]
+        if hasattr(self.type, "m"):
+            return [item.m.from_json() for item in value]
+        return value
+
 
 class ComputedField(Field):
     def __init__(self, getter, setter=None, **kwargs):
@@ -160,13 +187,15 @@ class DataContainer:
 
 
 class Instrumentation:
+    def __init__(self, owner=None):
+        self.owner = owner
+
     def _bind(self, parent_instance):
         instance = type(self)()
         # TODO: use a cascading dict:
         instance.__dict__ = self.__dict__.copy()
         instance.parent = parent_instance
         return instance
-
 
     def json(self, serialize=False):
         sentinel = object()
@@ -177,6 +206,22 @@ class Instrumentation:
                 result[field_name] = field.json(value)
         return result if not serialize else json.dumps(result)
 
+    def from_json(self, data, strict=False):
+        if isinstance(data, str):
+            data = json.loads(data)
+        instance = self.owner()
+        for key, value in data.items():
+            field = self.fields.get(key)
+            if hasattr(field, "from_json"):
+                value = field.from_json(value)
+            elif hasattr(field, "m"):
+                value = field.m.from_json(value)
+
+            if strict and field is None:
+                raise KeyError(f"Unknown field {key!r}")
+
+            setattr(instance.d, key, value)
+        return instance
 
     @lru_cache()
     def __get__(self, instance, owner):
@@ -210,7 +255,7 @@ class Meta(type):
         cls = super().__new__(metacls, name, bases, attrs, **kwargs)
 
         cls.d = container
-        cls.m = Instrumentation()
+        cls.m = Instrumentation(owner=cls)
         cls.m.fields = container.__dict__
 
         for field_name, field in cls.m.fields.items():
