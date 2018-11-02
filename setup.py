@@ -14,9 +14,10 @@ setup(
     py_modules = ['singularity'],
     url = 'https://github.com/jsbueno/singularity',
     long_description = open('README.md').read(),
+    requires=['dateparser']
     test_requires = ['pytest'],
     classifiers = [
-        "Development Status :: 5 - Production/Stable",
+        "Development Status :: 2 - Alpha",
         "Intended Audience :: Developers",
         "Programming Language :: Python :: 3.7",
         "License :: OSI Approved :: GNU Lesser General Public License v3 or later (LGPLv3+)",

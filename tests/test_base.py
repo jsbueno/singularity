@@ -48,6 +48,13 @@ def person_cls(pet_cls):
     return Person
 
 
+@pytest.fixture
+def person(person_cls, dog):
+    pe = person_cls("João")
+    pe.d.pets.append(dog)
+    return pe
+
+
 def test_declare_dataclass():
     class Pet(S.Base):
         name = S.StringField()
@@ -83,13 +90,6 @@ def test_declare_strict_dataclass():
         assert p.species == "dog"
     with pytest.raises(AttributeError):
         assert p.birthday == date(2015, 1, 1)
-
-
-@pytest.fixture
-def person(person_cls, dog):
-    pe = person_cls("João")
-    pe.d.pets.append(dog)
-    return pe
 
 
 def test_computed_field(dog):
@@ -182,3 +182,16 @@ def test_dir_on_container_namespace_should_return_existing_fields(pet_cls):
     assert dir(pet_cls("Rex").d) == sorted(["name", "age"])
     assert dir(pet_cls("Rex", "dog").d) == sorted(["name", "species", "age"])
     assert dir(pet_cls("Rex", "dog", date(2015, 1, 1)).d) == sorted(["name", "species", "birthday", "age"])
+
+
+def test_attribute_values_can_be_deleted(dog):
+    with pytest.raises(TypeError):
+        dog.d.name = None
+
+    del dog.d.name
+
+    with pytest.raises(AttributeError):
+        del dog.d.name
+
+    assert not hasattr(dog.d, 'name')
+

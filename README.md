@@ -40,6 +40,8 @@ TypeError: Field 'age' of 'Person' instances must be set to an instance of 'Numb
 ```
 
 The fields as descriptors are available to inspection/direct access on the `.m` namespace:
+
+```
 >>> p.m.fields.keys()
 dict_keys(['name', 'age'])
 >>> p.m.json()                                                                                              {'name': 'joao', 'age': 19}

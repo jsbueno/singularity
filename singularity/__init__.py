@@ -26,6 +26,9 @@ class Field:
             raise TypeError(f"Field '{self.name}' of '{type(instance).__name__}' instances must be set to an instance of '{self.type.__name__}'")
         instance._data[self.name] = value
 
+    def __delete__(self, instance):
+        del instance._data[self.name]
+
     def __set_name__(self, owner, name):
         self.owner = owner
         self.name = name
@@ -178,6 +181,13 @@ class DataContainer2:
             return super().__setattr__(attr, value)
         attr = self._parent.__dict__[attr]
         attr.__set__(self._instance, value)
+
+    def __delattr__(self, attr):
+        if attr not in self._instance._data:
+            raise AttributeError
+        attr = self._parent.__dict__[attr]
+        return attr.__delete__(self._instance)
+
 
     def __dir__(self):
         if not self._instance:
