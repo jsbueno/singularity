@@ -1,8 +1,8 @@
-[WIP] Singularity
-++++++++++++++++++
+Singularity
+===================
 
-To become a transparent  Object Persistence, Schma verifier, plugable
-data engine, allwoing multiple backe-ends.
+A (soon to be) transparent  Object Persistence, Schema verifier, workflow and permission aware, plugable
+data engine, allowing multiple backends.
 
 
 DataFields
@@ -47,6 +47,7 @@ dict_keys(['name', 'age'])
 >>> p.m.json(serialize=True)
 '{"name": "joao", "age": 19}'
 
+```
 
 Currently, the fields are, by default, mirrored on the normal class namespaces - but one can pass
 the keyword argument `strict=True` when creating the class to avoid having the fields in the class namespace itself.
