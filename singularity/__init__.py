@@ -256,6 +256,7 @@ class Meta(type):
 
         cls.d = container
         cls.m = Instrumentation(owner=cls)
+        cls.m.strict = strict
         cls.m.fields = container.__dict__
 
         for field_name, field in cls.m.fields.items():
@@ -275,7 +276,7 @@ class Base(metaclass=Meta):
         for field_name, arg in kwargs.items():
             if field_name in seem:
                 raise TypeError(f"Argument {field_name!r} passed twice")
-            setattr(self, field_name, arg)
+            setattr(self.d, field_name, arg)
 
     def __repr__(self):
         return "{0}({1})".format(

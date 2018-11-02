@@ -4,6 +4,50 @@ import pytest
 
 import singularity as S
 
+
+def pet_cls_call():
+    class Pet(S.Base):
+        name = S.StringField()
+        species = S.StringField(options="cat dog other".split())
+        birthday = S.DateField()
+        age = S.ComputedField(lambda self: (date.today() - self.d.birthday).days // 365)
+
+    return Pet
+
+
+def pet_strict_cls_call():
+    class Pet(S.Base, strict=True):
+        name = S.StringField()
+        species = S.StringField(options="cat dog other".split())
+        birthday = S.DateField()
+        age = S.ComputedField(lambda self: (date.today() - self.d.birthday).days // 365)
+
+    return Pet
+
+
+@pytest.fixture
+def pet_cls():
+    return pet_cls_call()
+
+
+@pytest.fixture
+def pet_strict_cls():
+    return pet_strict_cls_call()
+
+@pytest.fixture
+def dog(pet_cls):
+    return pet_cls("Rex", "dog", date(2015, 1, 1))
+
+
+@pytest.fixture
+def person_cls(pet_cls):
+    class Person(S.Base):
+        name = S.StringField()
+        pets = S.ListField(pet_cls)
+
+    return Person
+
+
 def test_declare_dataclass():
     class Pet(S.Base):
         name = S.StringField()
@@ -39,31 +83,6 @@ def test_declare_strict_dataclass():
         assert p.species == "dog"
     with pytest.raises(AttributeError):
         assert p.birthday == date(2015, 1, 1)
-
-
-@pytest.fixture
-def pet_cls():
-    class Pet(S.Base):
-        name = S.StringField()
-        species = S.StringField(options="cat dog other".split())
-        birthday = S.DateField()
-        age = S.ComputedField(lambda self: (date.today() - self.d.birthday).days // 365)
-
-    return Pet
-
-
-@pytest.fixture
-def dog(pet_cls):
-    return pet_cls("Rex", "dog", date(2015, 1, 1))
-
-
-@pytest.fixture
-def person_cls(pet_cls):
-    class Person(S.Base):
-        name = S.StringField()
-        pets = S.ListField(pet_cls)
-
-    return Person
 
 
 @pytest.fixture
@@ -121,3 +140,24 @@ def test_json_serializing_incomplete_object(person_cls):
     assert p.m.json() == {
         "pets": []
     }
+
+
+def test_meta_attributes_indicate_strict_class(pet_cls, pet_strict_cls):
+    assert not pet_cls.m.strict
+    assert pet_strict_cls.m.strict
+
+
+@pytest.mark.parametrize("Pet", [pet_cls_call(), pet_strict_cls_call()])
+def test_unamed_parameters_should_work(Pet):
+    p = Pet("Rex", "dog", date(2015, 1, 1))
+    assert p.d.name == "Rex"
+    assert p.d.species == "dog"
+    assert p.d.birthday == date(2015, 1, 1)
+
+
+@pytest.mark.parametrize("Pet", [pet_cls_call(), pet_strict_cls_call()])
+def test_named_parameters_should_work(Pet):
+    p = Pet(name="Rex", species="dog", birthday=date(2015, 1, 1))
+    assert p.d.name == "Rex"
+    assert p.d.species == "dog"
+    assert p.d.birthday == date(2015, 1, 1)
