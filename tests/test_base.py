@@ -119,38 +119,6 @@ def test_list_field_dont_accept_wrong_type(person):
         person.d.pets.append(1)
 
 
-def test_json_serializing(dog, person):
-    dog_json = {
-        'name': 'Rex',
-        'species': 'dog',
-        'birthday': '2015-01-01',
-        'age': 3
-    }
-    person_json = {
-
-    }
-
-    original_dt = date
-    class FakeDate:
-        @staticmethod
-        def today():
-            return original_dt(2018, 11, 1)
-
-    with mock.patch('datetime.date', FakeDate):
-        assert dog.m.json() == dog_json
-        assert person.m.json() == {
-            "name": "João",
-            "pets": [dog_json]
-        }
-
-
-def test_json_serializing_incomplete_object(person_cls):
-    p = person_cls()
-    assert p.m.json() == {
-        "pets": []
-    }
-
-
 def test_meta_attributes_indicate_strict_class(pet_cls, pet_strict_cls):
     assert not pet_cls.m.strict
     assert pet_strict_cls.m.strict
@@ -177,6 +145,16 @@ def test_strict_classes_should_not_allow_attribute_setting(pet_strict_cls):
     with pytest.raises(AttributeError):
         p.name = "Rex"
     p.d.name = "Rex"
+
+
+def test_iterating_on_object_should_yield_defined_fields(pet_cls):
+    # TODO: maybe be able to customize whether a computed field should show up?
+    # An attribute could be set on the field to indicate the pre-requisite fields
+    # for it to "exist".
+    assert list(pet_cls()) == ["age"]
+    assert list(pet_cls("Rex")) == ["name", "age"]
+    assert list(pet_cls("Rex", "dog")) == ["name", "species", "age"]
+    assert list(pet_cls("Rex", "dog", date(2015, 1, 1))) == ["name", "species", "birthday", "age"]
 
 
 def test_dir_on_container_namespace_for_class_should_return_fields(pet_cls):
@@ -216,3 +194,61 @@ def test_attribute_values_can_be_deleted_in_body(pet_strict_cls, pet_cls):
         del d2.name
 
 
+
+@pytest.mark.skip
+def test_equal_fields_imply_equality(pet_cls, person_cls, dog, person):
+    new_dog = pet_cls()
+    new_dog._data.update(dog._data)
+    assert new_dog == dog
+
+
+def test_json_serializing(dog, person):
+    dog_json = {
+        'name': 'Rex',
+        'species': 'dog',
+        'birthday': '2015-01-01',
+        'age': 3
+    }
+    person_json = {
+
+    }
+
+    original_dt = date
+    class FakeDate:
+        @staticmethod
+        def today():
+            return original_dt(2018, 11, 1)
+
+    with mock.patch('datetime.date', FakeDate):
+        assert dog.m.json() == dog_json
+        assert person.m.json() == {
+            "name": "João",
+            "pets": [dog_json]
+        }
+
+
+
+def test_json_serializing_incomplete_object(person_cls):
+    p = person_cls()
+    assert p.m.json() == {
+        "pets": []
+    }
+
+
+@pytest.mark.skip
+def test_json_desserializing(pet_cls, dog):
+    dog_json = {
+        'name': 'Rex',
+        'species': 'dog',
+        'birthday': '2015-01-01',
+    }
+
+    new_dog = pet_cls.m.from_json(dog_json)
+
+    assert new_dog == dog
+
+        #assert dog.m.json() == dog_json
+        #assert person.m.json() == {
+            #"name": "João",
+            #"pets": [dog_json]
+        #}

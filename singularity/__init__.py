@@ -188,15 +188,9 @@ class DataContainer2:
         attr = self._parent.__dict__[attr]
         return attr.__delete__(self._instance)
 
-
     def __dir__(self):
-        if not self._instance:
-            return list(self._owner.m.fields)
-        return [
-            field_name
-            for field_name, field in self._owner.m.fields.items()
-            if field_name in self._instance._data or isinstance(field, ComputedField)
-        ]
+        return list(self._instance.m.defined_fields() if self._instance else self._owner.m.defined_fields())
+
 
 
 class DataContainer:
@@ -206,6 +200,8 @@ class DataContainer:
 
 
 class Instrumentation:
+    parent = None
+
     def __init__(self, owner=None):
         self.owner = owner
 
@@ -247,6 +243,14 @@ class Instrumentation:
         if instance is None:
             return self
         return self._bind(instance)
+
+    def defined_fields(self):
+        if not self.parent:
+            yield from self.fields.keys()
+            return None
+        for field_name, field in self.fields.items():
+            if field_name in self.parent._data or isinstance(field, ComputedField):
+                yield field_name
 
 
 def parent_field_list(bases):
@@ -309,6 +313,17 @@ class Base(metaclass=Meta):
             if field_name in seem:
                 raise TypeError(f"Argument {field_name!r} passed twice")
             setattr(self.d, field_name, arg)
+
+    def __iter__(self):
+        yield from self.m.defined_fields()
+
+    #def __eq__(self, other):
+        #if not isinstance(other, self.__class__):
+            #return False
+        #for field_name in self:
+            #if not isinstance(self.m.fields["field_name"], ComputedField):
+                #pass
+        #return all(getattr(self ))
 
     def __repr__(self):
         return "{0}({1})".format(
