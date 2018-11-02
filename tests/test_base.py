@@ -195,11 +195,17 @@ def test_attribute_values_can_be_deleted_in_body(pet_strict_cls, pet_cls):
 
 
 
-@pytest.mark.skip
 def test_equal_fields_imply_equality(pet_cls, person_cls, dog, person):
     new_dog = pet_cls()
     new_dog._data.update(dog._data)
+
     assert new_dog == dog
+    del new_dog.birthday
+    assert new_dog != dog
+    del dog.birthday
+    assert new_dog == dog
+    del new_dog.name
+    assert new_dog != dog
 
 
 def test_json_serializing(dog, person):

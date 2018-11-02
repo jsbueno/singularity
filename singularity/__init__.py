@@ -317,13 +317,19 @@ class Base(metaclass=Meta):
     def __iter__(self):
         yield from self.m.defined_fields()
 
-    #def __eq__(self, other):
-        #if not isinstance(other, self.__class__):
-            #return False
-        #for field_name in self:
-            #if not isinstance(self.m.fields["field_name"], ComputedField):
-                #pass
-        #return all(getattr(self ))
+    def __eq__(self, other):
+        if not isinstance(other, self.__class__):
+            return False
+        sentinel = object()
+        return all(
+            getattr(self.d, field_name, sentinel) == getattr(other.d, field_name, sentinel)
+            for field_name in self.m.fields
+            if not isinstance(self.m.fields[field_name], ComputedField)
+        )
+
+    def __hash__(self):
+        # Needed for caching the container object.
+        return hash(id(self))
 
     def __repr__(self):
         return "{0}({1})".format(
