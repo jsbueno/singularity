@@ -8,21 +8,33 @@ DONE
 
 TODO
 
-Field handling of default/mandatory values
-StringField Lenght parameters
+.Field value deleting
+.Use of dataclasses as fields
+.Field handling of default/mandatory values
+.Field validators and options
+.StringField Lenght parameters
 
-2. declarative data classes - for nested fields buildable in one line
-5. mapping-like access for dotted attributes
-6. JSON import
-7. postgresql JSONB persistense
-8. Schema JSON import/export
-8.5.  workflow
+. JSON import
+. declarative data classes - for nested fields buildable in one line
+. mapping-like access for dotted attributes
+. postgresql JSONB persistence and indexing
+. Schema JSON import/export
+. workflow
 
-9. Python code generation from Schema.
-10. Django-model dynamic generation
-11. SQLAlchemy-model dynamic genreation
-12. Colander/DjangoForms dynamic generation
-13. Captain'Proto interoperation
+. Python code generation from Schema.
+. Django-model dynamic generation
+. SQLAlchemy-model dynamic genreation
+. Colander/DjangoForms dynamic generation
+. automatic model change and versioning tracking (integrated with git)
+. Captain'Proto interoperation
 
+
+
+
+Implementation Details Todo:
+
+.inter-references on the data mechanisms should use weakrefs
+. Refactor to distinct files
+. publish on pypi
 
 
