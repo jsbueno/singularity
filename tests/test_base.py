@@ -161,3 +161,24 @@ def test_named_parameters_should_work(Pet):
     assert p.d.name == "Rex"
     assert p.d.species == "dog"
     assert p.d.birthday == date(2015, 1, 1)
+
+
+def test_strict_classes_should_not_allow_attribute_setting(pet_strict_cls):
+    p = pet_strict_cls()
+    with pytest.raises(AttributeError):
+        p.name = "Rex"
+    p.d.name = "Rex"
+
+
+def test_dir_on_container_namespace_for_class_should_return_fields(pet_cls):
+    assert dir(pet_cls.d) == sorted(["name", "species", "birthday", "age"])
+
+
+def test_dir_on_container_namespace_should_return_existing_fields(pet_cls):
+    # TODO: maybe be able to customize whether a computed field should show up?
+    # An attribute could be set on the field to indicate the pre-requisite fields
+    # for it to "exist".
+    assert dir(pet_cls().d) == ["age"]
+    assert dir(pet_cls("Rex").d) == sorted(["name", "age"])
+    assert dir(pet_cls("Rex", "dog").d) == sorted(["name", "species", "age"])
+    assert dir(pet_cls("Rex", "dog", date(2015, 1, 1)).d) == sorted(["name", "species", "birthday", "age"])

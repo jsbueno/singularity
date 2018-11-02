@@ -179,6 +179,15 @@ class DataContainer2:
         attr = self._parent.__dict__[attr]
         attr.__set__(self._instance, value)
 
+    def __dir__(self):
+        if not self._instance:
+            return list(self._owner.m.fields)
+        return [
+            field_name
+            for field_name, field in self._owner.m.fields.items()
+            if field_name in self._instance._data or isinstance(field, ComputedField)
+        ]
+
 
 class DataContainer:
     @lru_cache()
@@ -239,11 +248,17 @@ def parent_field_list(bases):
 
 
 class Meta(type):
+
+    # There is no '__prepare__' method, as in Python 3.6+,
+    # class attributes are ordered by default.
+    # otherwise, __prepare__ should return an OrderedDict
+
     def __new__(metacls, name, bases, attrs, strict=False, **kwargs):
 
         container = DataContainer()
         for field_name, field in parent_field_list(bases):
             fields[field_name] = field
+            # Avoid triggering descriptor mechanisms
             container.__dict__[field_name] = field
 
         for attr_name, value in list(attrs.items()):
@@ -252,6 +267,11 @@ class Meta(type):
                 if strict:
                     del attrs[attr_name]
 
+        if strict:
+            slots = set(attrs.get("__slots__", ()))
+            slots.update({"m", "d", "_data"})
+            attrs["__slots__"] = tuple(slots)
+
         cls = super().__new__(metacls, name, bases, attrs, **kwargs)
 
         cls.d = container
@@ -259,13 +279,15 @@ class Meta(type):
         cls.m.strict = strict
         cls.m.fields = container.__dict__
 
-        for field_name, field in cls.m.fields.items():
-            field.__set_name__(cls, field_name)
+        if strict:
+            for field_name, field in cls.m.fields.items():
+                field.__set_name__(cls, field_name)
 
         return cls
 
 
 class Base(metaclass=Meta):
+    __slots__ = ()
     def __init__(self, *args, **kwargs):
         self._data = {}
         seem = set()
