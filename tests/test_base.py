@@ -1,4 +1,5 @@
 from datetime import date
+from unittest import mock
 
 import pytest
 
@@ -101,7 +102,7 @@ def test_str_field_with_options_error_on_unknown_option(dog):
         dog.d.species = "lemur"
 
 
-def test_declare_nested_dataclass(dog):
+def test_class_with_listfield(dog):
 
     class Person(S.Base):
         name = S.StringField()
@@ -123,16 +124,24 @@ def test_json_serializing(dog, person):
         'name': 'Rex',
         'species': 'dog',
         'birthday': '2015-01-01',
-        'age': 3   # FIXME: this will break on 2019-01-01 - insert meta values to select which fields are serializable
+        'age': 3
     }
     person_json = {
 
     }
-    assert dog.m.json() == dog_json
-    assert person.m.json() == {
-        "name": "João",
-        "pets": [dog_json]
-    }
+
+    original_dt = date
+    class FakeDate:
+        @staticmethod
+        def today():
+            return original_dt(2018, 11, 1)
+
+    with mock.patch('datetime.date', FakeDate):
+        assert dog.m.json() == dog_json
+        assert person.m.json() == {
+            "name": "João",
+            "pets": [dog_json]
+        }
 
 
 def test_json_serializing_incomplete_object(person_cls):
@@ -194,4 +203,16 @@ def test_attribute_values_can_be_deleted(dog):
         del dog.d.name
 
     assert not hasattr(dog.d, 'name')
+
+
+def test_attribute_values_can_be_deleted_in_body(pet_strict_cls, pet_cls):
+    # For non-strict classes:
+    d1 = pet_cls("Rex")
+    del d1.name
+    with pytest.raises(AttributeError):
+        assert d1.name
+    d2 = pet_strict_cls("Rex")
+    with pytest.raises(AttributeError):
+        del d2.name
+
 
