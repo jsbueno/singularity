@@ -56,6 +56,16 @@ def person(person_cls, dog):
     return pe
 
 
+@pytest.fixture
+def dog_json():
+    return {
+        'name': 'Rex',
+        'species': 'dog',
+        'birthday': '2015-01-01',
+        'age': 3
+    }
+
+
 def test_declare_dataclass():
     class Pet(S.Base):
         name = S.StringField()
@@ -194,8 +204,7 @@ def test_attribute_values_can_be_deleted_in_body(pet_strict_cls, pet_cls):
         del d2.name
 
 
-
-def test_equal_fields_imply_equality(pet_cls, person_cls, dog, person):
+def test_equal_fields_imply_equality(pet_cls, dog):
     new_dog = pet_cls()
     new_dog._data.update(dog._data)
 
@@ -208,17 +217,18 @@ def test_equal_fields_imply_equality(pet_cls, person_cls, dog, person):
     assert new_dog != dog
 
 
-def test_json_serializing(dog, person):
-    dog_json = {
-        'name': 'Rex',
-        'species': 'dog',
-        'birthday': '2015-01-01',
-        'age': 3
-    }
-    person_json = {
+def test_equal_fields_imply_equality_with_listfield(pet_cls, person_cls, dog, person):
+    new_dog = pet_cls()
+    new_dog._data.update(dog._data)
+    new_person = person_cls()
+    new_person._data.update(person._data)
+    new_person._data['pets'] = S.TypedSequence(pet_cls, [new_dog])
 
-    }
+    assert new_person == person
 
+
+
+def test_json_serializing(dog, person, dog_json):
     original_dt = date
     class FakeDate:
         @staticmethod
@@ -231,7 +241,6 @@ def test_json_serializing(dog, person):
             "name": "João",
             "pets": [dog_json]
         }
-
 
 
 def test_json_serializing_incomplete_object(person_cls):

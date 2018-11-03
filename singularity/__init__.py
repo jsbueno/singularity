@@ -22,8 +22,7 @@ class Field:
             raise AttributeError from error
 
     def __set__(self, instance, value):
-        if not isinstance(value, self.type):
-            raise TypeError(f"Field '{self.name}' of '{type(instance).__name__}' instances must be set to an instance of '{self.type.__name__}'")
+        self._check(type(instance), value)
         instance._data[self.name] = value
 
     def __delete__(self, instance):
@@ -32,6 +31,10 @@ class Field:
     def __set_name__(self, owner, name):
         self.owner = owner
         self.name = name
+
+    def _check(self, owner, value):
+        if not isinstance(value, self.type):
+            raise TypeError(f"Field '{self.name}' of '{owner.__name__}' instances must be set to an instance of '{self.type.__name__}'")
 
     def json(self, value):
         return value
@@ -110,6 +113,11 @@ class TypedSequence(MutableSequence):
     def __len__(self):
         return len(self._data)
 
+    def __eq__(self, other):
+        if not isinstance(other, TypedSequence) or self.type != other.type or len(self) != len(other):
+            return False
+        return all(self_item == other_item for self_item, other_item in zip(self, other))
+
     def insert(self, index, value):
         self._check(value)
         self._data.insert(index, value)
@@ -129,21 +137,24 @@ class ListField(Field):
         return instance._data.setdefault(self.name, TypedSequence(self.type))
 
     def __set__(self, instance, value):
-        raise TypeError(f"ListFields can't be set!")
+        super().__set__(instance, TypedSequence(self.type, value))
+
+    def _check(self, owner, value):
+        if not isinstance(value, TypedSequence) or value.type != self.type:
+            raise TypeError(f"Values for field '{owner.__name__}.{self.name!r}' must be a TypeSequence of {self.type!r}")
 
     def json(self, value):
         if hasattr(self.type, "json"):
-            return [self.type.json(item) for item in value]
-        if hasattr(self.type, "m"):
-            return [item.m.json() for item in value]
+            value = [self.type.json(item) for item in value]
+        elif hasattr(self.type, "m"):
+            value = [item.m.json() for item in value]
         return value
 
-    @classmethod
     def from_json(self, value):
         if hasattr(self.type, "from_json"):
-            return [self.type.from_json(item) for item in value]
-        if hasattr(self.type, "m"):
-            return [item.m.from_json() for item in value]
+            value = [self.type.from_json(item) for item in value]
+        elif hasattr(self.type, "m"):
+            value = [self.type.m.from_json(item) for item in value]
         return value
 
 
@@ -227,6 +238,8 @@ class Instrumentation:
         instance = self.owner()
         for key, value in data.items():
             field = self.fields.get(key)
+            if isinstance(field, ComputedField):
+                continue
             if hasattr(field, "from_json"):
                 value = field.from_json(value)
             elif hasattr(field, "m"):
@@ -323,8 +336,8 @@ class Base(metaclass=Meta):
         sentinel = object()
         return all(
             getattr(self.d, field_name, sentinel) == getattr(other.d, field_name, sentinel)
-            for field_name in self.m.fields
-            if not isinstance(self.m.fields[field_name], ComputedField)
+            for field_name, field in self.m.fields.items()
+            if not isinstance(field, ComputedField)
         )
 
     def __hash__(self):
