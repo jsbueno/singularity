@@ -126,6 +126,18 @@ class TypedSequence(MutableSequence):
         return repr(self._data)
 
 
+class TypeField(Field):
+    def __init__(self, type_=object, **kwargs):
+        self.type = type_
+        super().__init__(**kwargs)
+
+    def json(self, value):
+        return self.type.m.json(obj=value)
+
+    def from_json(self, value):
+        return self.type.m.from_json(value)
+
+
 class ListField(Field):
     def __init__(self, type_=object,**kwargs):
         self.type = type_
@@ -223,11 +235,11 @@ class Instrumentation:
         instance.parent = parent_instance
         return instance
 
-    def json(self, serialize=False):
+    def json(self, serialize=False, obj=None):
         sentinel = object()
         result = {}
         for field_name, field in self.fields.items():
-            value = getattr(self.parent.d, field_name, sentinel)
+            value = getattr(obj.d if obj else self.parent.d, field_name, sentinel)
             if value is not sentinel:
                 result[field_name] = field.json(value)
         return result if not serialize else json.dumps(result)

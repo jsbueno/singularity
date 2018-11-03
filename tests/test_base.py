@@ -27,6 +27,12 @@ class StrictPerson(S.Base, strict=True):
     name = S.StringField()
     pets = S.ListField(StrictPet)
 
+
+class Child(StrictPerson, strict=True):
+    father = S.TypeField(StrictPerson)
+    mother = S.TypeField(StrictPerson)
+
+
 @pytest.fixture
 def pet_cls():
     return Pet
@@ -79,6 +85,13 @@ def dog_json():
         'birthday': '2015-01-01',
         'age': 3
     }
+
+
+@pytest.fixture
+def child(strict_person):
+    m = StrictPerson("Beatriz")
+    return Child("Bruno", father=strict_person, mother=m)
+
 
 
 def test_declare_dataclass():
@@ -292,8 +305,6 @@ def test_shallow_copy_works_for_non_strict(dog, person):
     assert person.pets[0] is new_person.pets[0]
 
 
-
-
 def test_deepcopy_works_for_non_strict_instance(person):
     from copy import deepcopy
 
@@ -327,3 +338,32 @@ def test_instances_can_be_unpickled(strict_dog, strict_person):
 
     assert new_dog == strict_dog
     assert new_person == strict_person
+
+
+def test_typefield_works(strict_person):
+    m = StrictPerson("Beatriz")
+    c = Child("Bruno", father=strict_person, mother=m)
+    assert c.d.father == strict_person
+    assert c.d.mother == m
+
+
+def test_json_serialize_desserialize_with_typefield(child):
+    child_json = {
+        'name': 'Bruno',
+        'pets': [],
+        'father': {
+            'name': 'João',
+            'pets': [{
+                'age': 3,
+                'birthday': '2015-01-01',
+                'name': 'Rex',
+                'species': 'dog'
+            }]
+        },
+        'mother': {'name': 'Beatriz', 'pets': []},
+    }
+
+    data = child.m.json()
+    assert data == child_json
+    new_child = Child.m.from_json(data)
+    assert child == new_child

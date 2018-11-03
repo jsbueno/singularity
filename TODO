@@ -1,20 +1,23 @@
 DONE
 
+Done:
+
 1. field descriptor/data_classes
 3. specialize data types
 4. namespace acessor  for dotted attributes
 5. JSON export
 6. reactive fields
+7. JSON import
+8.Field value deleting
+9. copy, deepcopy and pickling work
 
 TODO
 
-.Field value deleting
 .Use of dataclasses as fields
 .Field handling of default/mandatory values
 .Field validators and options
 .StringField Lenght parameters
 
-. JSON import
 . declarative data classes - for nested fields buildable in one line
 . mapping-like access for dotted attributes
 . postgresql JSONB persistence and indexing
@@ -31,10 +34,9 @@ TODO
 
 
 
-Implementation Details Todo:
+Implementation Details TODO:
 
 .inter-references on the data mechanisms should use weakrefs
 . Refactor to distinct files
 . publish on pypi
-. copy and deepcopy should work
 
