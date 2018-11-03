@@ -272,6 +272,14 @@ class Instrumentation:
         instance._data = self.parent._data.copy()
         return instance
 
+    def deepcopy(self, memo=None):
+        from copy import deepcopy
+        if not self.parent:
+            raise TypeError("Only instances of dataclasses can be deep-copied")
+        instance = self.owner()
+        instance._data = deepcopy(self.parent._data, memo)
+        return instance
+
 
 def parent_field_list(bases):
     for base in bases:

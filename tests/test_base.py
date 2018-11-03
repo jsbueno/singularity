@@ -308,3 +308,23 @@ def test_shallow_copy_works_for_strict_instance(strict_dog, strict_person):
         assert strict_person == new_person
         assert strict_person is not new_person
         assert strict_person.d.pets[0] is new_person.d.pets[0]
+
+
+def test_deepcopy_works_for_non_strict_instance(person):
+    from copy import deepcopy
+
+    for new_person in (deepcopy(person), person.m.deepcopy()):
+        assert person == new_person
+        assert person is not new_person
+        assert person.d.pets == new_person.d.pets
+        assert person.d.pets[0] is not new_person.d.pets[0]
+
+
+def test_deepcopy_works_for_strict_instance(strict_dog, strict_person):
+    from copy import deepcopy
+
+    for new_person in (deepcopy(strict_person), strict_person.m.deepcopy()):
+        assert strict_person == new_person
+        assert strict_person is not new_person
+        assert strict_person.d.pets == new_person.d.pets
+        assert strict_person.d.pets[0] is not new_person.d.pets[0]
