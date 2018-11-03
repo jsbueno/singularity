@@ -36,5 +36,5 @@ Implementation Details Todo:
 .inter-references on the data mechanisms should use weakrefs
 . Refactor to distinct files
 . publish on pypi
-
+. copy and deepcopy should work
 

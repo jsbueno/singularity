@@ -227,7 +227,6 @@ def test_equal_fields_imply_equality_with_listfield(pet_cls, person_cls, dog, pe
     assert new_person == person
 
 
-
 def test_json_serializing(dog, person, dog_json):
     original_dt = date
     class FakeDate:
@@ -250,20 +249,17 @@ def test_json_serializing_incomplete_object(person_cls):
     }
 
 
-@pytest.mark.skip
-def test_json_desserializing(pet_cls, dog):
-    dog_json = {
-        'name': 'Rex',
-        'species': 'dog',
-        'birthday': '2015-01-01',
-    }
-
+def test_json_desserializing(pet_cls, dog, dog_json):
     new_dog = pet_cls.m.from_json(dog_json)
-
     assert new_dog == dog
 
-        #assert dog.m.json() == dog_json
-        #assert person.m.json() == {
-            #"name": "João",
-            #"pets": [dog_json]
-        #}
+
+def test_json_desserializing_with_listfield(person_cls, person, dog_json):
+    person_json = {
+        "name": "João",
+        "pets": [dog_json]
+    }
+
+    new_person = person_cls.m.from_json(person_json)
+
+    assert new_person == person
