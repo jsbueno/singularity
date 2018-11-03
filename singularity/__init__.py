@@ -371,6 +371,11 @@ class Base(metaclass=Meta):
     def __deepcopy__(self, memo=None):
         return self.m.deepcopy(memo)
 
+    def __getstate__(self):
+        return self._data
+
+    def __setstate__(self, state):
+        self._data = state
 
 
 

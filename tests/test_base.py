@@ -6,34 +6,36 @@ import pytest
 import singularity as S
 
 
-def pet_cls_call():
-    class Pet(S.Base):
-        name = S.StringField()
-        species = S.StringField(options="cat dog other".split())
-        birthday = S.DateField()
-        age = S.ComputedField(lambda self: (date.today() - self.d.birthday).days // 365)
-
-    return Pet
+class Pet(S.Base):
+    name = S.StringField()
+    species = S.StringField(options="cat dog other".split())
+    birthday = S.DateField()
+    age = S.ComputedField(lambda self: (date.today() - self.d.birthday).days // 365)
 
 
-def pet_strict_cls_call():
-    class Pet(S.Base, strict=True):
-        name = S.StringField()
-        species = S.StringField(options="cat dog other".split())
-        birthday = S.DateField()
-        age = S.ComputedField(lambda self: (date.today() - self.d.birthday).days // 365)
+class StrictPet(S.Base, strict=True):
+    name = S.StringField()
+    species = S.StringField(options="cat dog other".split())
+    birthday = S.DateField()
+    age = S.ComputedField(lambda self: (date.today() - self.d.birthday).days // 365)
 
-    return Pet
+class Person(S.Base):
+    name = S.StringField()
+    pets = S.ListField(Pet)
 
+class StrictPerson(S.Base, strict=True):
+    name = S.StringField()
+    pets = S.ListField(StrictPet)
 
 @pytest.fixture
 def pet_cls():
-    return pet_cls_call()
+    return Pet
 
 
 @pytest.fixture
 def pet_strict_cls():
-    return pet_strict_cls_call()
+    return StrictPet
+
 
 @pytest.fixture
 def dog(pet_cls):
@@ -46,21 +48,13 @@ def strict_dog(pet_strict_cls):
 
 
 @pytest.fixture
-def person_cls(pet_cls):
-    class Person(S.Base):
-        name = S.StringField()
-        pets = S.ListField(pet_cls)
-
+def person_cls():
     return Person
 
 
 @pytest.fixture
-def person_strict_cls(pet_strict_cls):
-    class Person(S.Base, strict=True):
-        name = S.StringField()
-        pets = S.ListField(pet_strict_cls)
-
-    return Person
+def person_strict_cls():
+    return StrictPerson
 
 
 @pytest.fixture
@@ -155,7 +149,7 @@ def test_meta_attributes_indicate_strict_class(pet_cls, pet_strict_cls):
     assert pet_strict_cls.m.strict
 
 
-@pytest.mark.parametrize("Pet", [pet_cls_call(), pet_strict_cls_call()])
+@pytest.mark.parametrize("Pet", [Pet, StrictPet])
 def test_unamed_parameters_should_work(Pet):
     p = Pet("Rex", "dog", date(2015, 1, 1))
     assert p.d.name == "Rex"
@@ -163,7 +157,7 @@ def test_unamed_parameters_should_work(Pet):
     assert p.d.birthday == date(2015, 1, 1)
 
 
-@pytest.mark.parametrize("Pet", [pet_cls_call(), pet_strict_cls_call()])
+@pytest.mark.parametrize("Pet", [Pet, StrictPet])
 def test_named_parameters_should_work(Pet):
     p = Pet(name="Rex", species="dog", birthday=date(2015, 1, 1))
     assert p.d.name == "Rex"
@@ -298,16 +292,6 @@ def test_shallow_copy_works_for_non_strict(dog, person):
     assert person.pets[0] is new_person.pets[0]
 
 
-def test_shallow_copy_works_for_strict_instance(strict_dog, strict_person):
-    from copy import copy
-    for new_dog in (copy(strict_dog), strict_dog.m.copy()):
-        assert strict_dog == new_dog
-        assert strict_dog is not new_dog
-
-    for new_person in (copy(strict_person), strict_person.m.copy()):
-        assert strict_person == new_person
-        assert strict_person is not new_person
-        assert strict_person.d.pets[0] is new_person.d.pets[0]
 
 
 def test_deepcopy_works_for_non_strict_instance(person):
@@ -328,3 +312,18 @@ def test_deepcopy_works_for_strict_instance(strict_dog, strict_person):
         assert strict_person is not new_person
         assert strict_person.d.pets == new_person.d.pets
         assert strict_person.d.pets[0] is not new_person.d.pets[0]
+
+
+def test_instances_can_be_pickled(strict_dog, strict_person):
+    import pickle
+    pickle.dumps(strict_dog)
+    pickle.dumps(strict_person)
+
+
+def test_instances_can_be_unpickled(strict_dog, strict_person):
+    import pickle
+    new_dog = pickle.loads(pickle.dumps(strict_dog))
+    new_person = pickle.loads(pickle.dumps(strict_person))
+
+    assert new_dog == strict_dog
+    assert new_person == strict_person
