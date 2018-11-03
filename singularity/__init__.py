@@ -285,7 +285,7 @@ def parent_field_list(bases):
     for base in bases:
         if not isinstance(base, Meta):
             continue
-        for field_name, field in base.m.fields:
+        for field_name, field in base.m.fields.items():
             yield field_name, field
 
 
@@ -299,7 +299,6 @@ class Meta(type):
 
         container = DataContainer()
         for field_name, field in parent_field_list(bases):
-            fields[field_name] = field
             # Avoid triggering descriptor mechanisms
             container.__dict__[field_name] = field
 
