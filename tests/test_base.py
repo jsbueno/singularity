@@ -41,6 +41,11 @@ def dog(pet_cls):
 
 
 @pytest.fixture
+def strict_dog(pet_strict_cls):
+    return pet_strict_cls("Rex", "dog", date(2015, 1, 1))
+
+
+@pytest.fixture
 def person_cls(pet_cls):
     class Person(S.Base):
         name = S.StringField()
@@ -50,9 +55,25 @@ def person_cls(pet_cls):
 
 
 @pytest.fixture
+def person_strict_cls(pet_strict_cls):
+    class Person(S.Base, strict=True):
+        name = S.StringField()
+        pets = S.ListField(pet_strict_cls)
+
+    return Person
+
+
+@pytest.fixture
 def person(person_cls, dog):
     pe = person_cls("João")
     pe.d.pets.append(dog)
+    return pe
+
+
+@pytest.fixture
+def strict_person(person_strict_cls, strict_dog):
+    pe = person_strict_cls("João")
+    pe.d.pets.append(strict_dog)
     return pe
 
 
@@ -263,3 +284,27 @@ def test_json_desserializing_with_listfield(person_cls, person, dog_json):
     new_person = person_cls.m.from_json(person_json)
 
     assert new_person == person
+
+
+def test_shallow_copy_works_for_non_strict(dog, person):
+    from copy import copy
+    new_dog = copy(dog)
+    assert dog == new_dog
+    assert dog is not new_dog
+
+    new_person = copy(person)
+    assert person == new_person
+    assert person is not new_person
+    assert person.pets[0] is new_person.pets[0]
+
+
+def test_shallow_copy_works_for_strict_instance(strict_dog, strict_person):
+    from copy import copy
+    for new_dog in (copy(strict_dog), strict_dog.m.copy()):
+        assert strict_dog == new_dog
+        assert strict_dog is not new_dog
+
+    for new_person in (copy(strict_person), strict_person.m.copy()):
+        assert strict_person == new_person
+        assert strict_person is not new_person
+        assert strict_person.d.pets[0] is new_person.d.pets[0]

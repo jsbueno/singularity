@@ -94,7 +94,7 @@ class TypedSequence(MutableSequence):
 
     def _check(self, value):
         if not isinstance(value, self.type):
-            raise TypeError(f"Only values of type '{type.__name__}' can be inserted!")
+            raise TypeError(f"Only values of type '{self.type.__name__}' can be inserted!")
 
     def __getitem__(self, index):
         return self._data.__getitem__(index)
@@ -265,6 +265,13 @@ class Instrumentation:
             if field_name in self.parent._data or isinstance(field, ComputedField):
                 yield field_name
 
+    def copy(self):
+        if not self.parent:
+            raise TypeError("Only instances of dataclasses can be copied")
+        instance = self.owner()
+        instance._data = self.parent._data.copy()
+        return instance
+
 
 def parent_field_list(bases):
     for base in bases:
@@ -349,6 +356,12 @@ class Base(metaclass=Meta):
             self.__class__.__name__,
             ', '.join(f"{name}={value}" for name, value in self._data.items())
         )
+
+    def __copy__(self):
+        return self.m.copy()
+
+    def __deepcopy__(self, memo=None):
+        return self.m.deepcopy(memo)
 
 
 
