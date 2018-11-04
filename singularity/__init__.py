@@ -415,6 +415,11 @@ class Base(metaclass=Meta):
 
             item = self
             for comp in self.m.parse_path(key):
+                if isinstance(comp, int):
+                    if isinstance(item, TypedSequence):
+                        item = item[comp]
+                        continue
+                    raise KeyError(f"Integer {comp!r} not allowed in this part of the path")
                 item = getattr(item.d, comp)
             return item
 
