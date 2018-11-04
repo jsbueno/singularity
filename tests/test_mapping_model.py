@@ -11,7 +11,6 @@ def test_attributes_can_be_read_as_mapping_items(dog):
         dog["child"]
 
 
-@pytest.mark.skip
 def test_nested_attributes_can_be_read_as_mapping_items(child):
     assert child["father"]["name"] == "João"
     assert child["father.name"] == "João"
@@ -37,14 +36,14 @@ def test_attributes_can_be_written_as_mapping_items(dog):
 
 
 @pytest.mark.skip
-def test_nested_attributes_can_be_read_as_mapping_items(child):
+def test_nested_attributes_can_be_written_as_mapping_items(child):
     child["father.name"] = "Renato"
     assert child["father.name"] == "Renato"
     assert child.d.father.d.name == "Renato"
 
 
 @pytest.mark.skip
-def test_nested_attributes_with_list_can_be_read_as_mapping_items(child):
+def test_nested_attributes_with_list_can_be_written_as_mapping_items(child):
     child["father.pets.0.name"] = "Toto"
     assert child["father.pets.0.name"] == "Toto"
     assert child.d.father.d.pets[0].d.name == "Toto"

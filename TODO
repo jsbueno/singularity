@@ -14,6 +14,7 @@ Done:
 
 TODO
 
+.nested field access as mapping keys
 .Field handling of default/mandatory values
 .Field validators and options
 .StringField Lenght parameters
@@ -22,7 +23,11 @@ TODO
 . mapping-like access for dotted attributes
 . postgresql JSONB persistence and indexing
 . Schema JSON import/export
-. workflow
+. workflow-states
+. workflow-permissions
+. workflow history tracking
+. data history and versioning for items
+
 
 . Python code generation from Schema.
 . Django-model dynamic generation

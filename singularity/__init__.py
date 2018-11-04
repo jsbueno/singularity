@@ -278,6 +278,11 @@ class Instrumentation:
             if field_name in self.parent._data or field in self.computed_fields:
                 yield field_name
 
+    def parse_path(self, path):
+        if isinstance(path, int):
+            return[path]
+        return [comp if not comp.isdigit() else int(comp) for comp in path.split(".")]
+
     def copy(self):
         if not self.parent:
             raise TypeError("Only instances of dataclasses can be copied")
@@ -399,9 +404,20 @@ class Base(metaclass=Meta):
 
     # Mapping Methods
 
-    def __getitem__(self, item):
+
+    def __getitem__(self, key):
         try:
-            return getattr(self.d, item)
+            # getting from '_data' would be faster, but we have to provide
+            # a single mechanism for data retrieval so that
+            # access control and permissions can work later on.
+            if not "." in key:
+                return getattr(self.d, key)
+
+            item = self
+            for comp in self.m.parse_path(key):
+                item = getattr(item.d, comp)
+            return item
+
         except AttributeError as error:
             raise KeyError from error
 
