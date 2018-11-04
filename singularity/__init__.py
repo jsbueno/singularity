@@ -400,7 +400,10 @@ class Base(metaclass=Meta):
     # Mapping Methods
 
     def __getitem__(self, item):
-        pass
+        try:
+            return getattr(self.d, item)
+        except AttributeError as error:
+            raise KeyError from error
 
     def __setitem__(self, item, value):
         pass
