@@ -14,7 +14,7 @@ class Field:
     type = object
 
     def __get__(self, instance, owner):
-        if not instance:
+        if instance is None:
             return self
         try:
             return instance._data[self.name]
@@ -144,7 +144,7 @@ class ListField(Field):
         super().__init__(**kwargs)
 
     def __get__(self, instance, owner):
-        if not instance:
+        if instance is None:
             return self
         return instance._data.setdefault(self.name, TypedSequence(self.type))
 
@@ -178,7 +178,7 @@ class ComputedField(Field):
         self.setter_func = setter
 
     def __get__(self, instance, owner):
-        if not instance:
+        if instance is None:
             return self
         return self.getter(instance)
 
@@ -186,7 +186,6 @@ class ComputedField(Field):
         if not self.setter:
             raise TypeError("Attribute not setable")
         self.setter_func(instance, value)
-
 
 
 class DataContainer2:
@@ -276,7 +275,7 @@ class Instrumentation:
             yield from self.fields.keys()
             return None
         for field_name, field in self.fields.items():
-            if field_name in self.parent._data or isinstance(field, ComputedField):
+            if field_name in self.parent._data or field in self.computed_fields:
                 yield field_name
 
     def copy(self):
@@ -316,11 +315,15 @@ class Meta(type):
             # Avoid triggering descriptor mechanisms
             container.__dict__[field_name] = field
 
+        computed_fields = set()
         for attr_name, value in list(attrs.items()):
-            if isinstance(value, Field):
-                container.__dict__[attr_name] = value
-                if strict:
-                    del attrs[attr_name]
+            if not isinstance(value, Field):
+                continue
+            container.__dict__[attr_name] = value
+            if strict:
+                del attrs[attr_name]
+            if isinstance(value, ComputedField):
+                computed_fields.add(value)
 
         if strict:
             slots = set(attrs.get("__slots__", ()))
@@ -333,6 +336,7 @@ class Meta(type):
         cls.m = Instrumentation(owner=cls)
         cls.m.strict = strict
         cls.m.fields = container.__dict__
+        cls.m.computed_fields = computed_fields
 
         if strict:
             for field_name, field in cls.m.fields.items():
@@ -342,7 +346,7 @@ class Meta(type):
 
 
 
-class FieldBase(metaclass=Meta):
+class Base(metaclass=Meta):
     __slots__ = ()
     def __init__(self, *args, **kwargs):
         self._data = {}
@@ -356,9 +360,6 @@ class FieldBase(metaclass=Meta):
                 raise TypeError(f"Argument {field_name!r} passed twice")
             setattr(self.d, field_name, arg)
 
-    def __iter__(self):
-        yield from self.m.defined_fields()
-
     def __eq__(self, other):
         if not isinstance(other, self.__class__):
             return False
@@ -366,12 +367,16 @@ class FieldBase(metaclass=Meta):
         return all(
             getattr(self.d, field_name, sentinel) == getattr(other.d, field_name, sentinel)
             for field_name, field in self.m.fields.items()
-            if not isinstance(field, ComputedField)
+            if field not in self.m.computed_fields
         )
 
     def __hash__(self):
         # Needed for caching the container object.
         return hash(id(self))
+
+    def __bool__(self):
+        # otherwise __len__ is used.
+        return True
 
     def __repr__(self):
         return "{0}({1})".format(
@@ -392,24 +397,25 @@ class FieldBase(metaclass=Meta):
         self._data = state
 
 
-class MappingMixin:
-
-    __slots__ = ()
+    # Mapping Methods
 
     def __getitem__(self, item):
         pass
+
     def __setitem__(self, item, value):
         pass
-    #def __len__(self):
-        #return 0
-    def __iter__(self):
-        pass
+
     def __delitem__(self):
         pass
 
-    #def __eq__(self, other):
-        #raise NotImplementedError
+    def __iter__(self):
+        yield from self.m.defined_fields()
 
-class Base(FieldBase, MappingMixin):
-    __slots__ = ()
-    pass
+    def __len__(self):
+        return len(self.m.computed_fields) + len(self._data)
+
+
+#class Base(FieldBase, MappingMixin):
+    #__slots__ = ()
+    #pass
+

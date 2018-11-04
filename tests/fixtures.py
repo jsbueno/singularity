@@ -1,7 +1,4 @@
 from datetime import date
-from unittest import mock
-
-import pytest
 
 import singularity as S
 

@@ -1,10 +1,8 @@
 from datetime import date
-from unittest import mock
 
 import pytest
 
 import singularity as S
-
 
 from fixtures import Pet, StrictPet, Person, StrictPerson, Child
 
@@ -27,6 +25,11 @@ def dog(pet_cls):
 @pytest.fixture
 def strict_dog(pet_strict_cls):
     return pet_strict_cls("Rex", "dog", date(2015, 1, 1))
+
+
+@pytest.fixture
+def cat(pet_strict_cls):
+    return pet_strict_cls("Marie", "cat", date(2016, 1, 1))
 
 
 @pytest.fixture

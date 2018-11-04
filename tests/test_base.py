@@ -169,6 +169,15 @@ def test_equal_fields_imply_equality_with_listfield(pet_cls, person_cls, dog, pe
     assert new_person == person
 
 
+def test_list_field_accept_appending(strict_person, cat):
+    strict_person.d.pets.append(cat)
+    assert len(strict_person.d.pets) == 2
+
+
+def test_empty_object_is_truthy(person_strict_cls):
+    assert person_strict_cls()
+
+
 def test_json_serializing(dog, person, dog_json):
     original_dt = date
     class FakeDate:
