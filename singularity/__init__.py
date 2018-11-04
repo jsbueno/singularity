@@ -1,4 +1,4 @@
-from collections.abc import Sequence, MutableSequence
+from collections.abc import Sequence, MutableSequence, MutableMapping
 from functools import lru_cache
 from types import SimpleNamespace
 import datetime
@@ -171,10 +171,11 @@ class ListField(Field):
 
 
 class ComputedField(Field):
+    # Can be used as a decorator for the getter method.
     def __init__(self, getter, setter=None, **kwargs):
         super().__init__(**kwargs)
         self.getter = getter
-        self.setter = setter
+        self.setter_func = setter
 
     def __get__(self, instance, owner):
         if not instance:
@@ -184,7 +185,8 @@ class ComputedField(Field):
     def __set__(self, instance, value):
         if not self.setter:
             raise TypeError("Attribute not setable")
-        self.setter(instance, value)
+        self.setter_func(instance, value)
+
 
 
 class DataContainer2:
@@ -339,7 +341,8 @@ class Meta(type):
         return cls
 
 
-class Base(metaclass=Meta):
+
+class FieldBase(metaclass=Meta):
     __slots__ = ()
     def __init__(self, *args, **kwargs):
         self._data = {}
@@ -389,4 +392,24 @@ class Base(metaclass=Meta):
         self._data = state
 
 
+class MappingMixin:
 
+    __slots__ = ()
+
+    def __getitem__(self, item):
+        pass
+    def __setitem__(self, item, value):
+        pass
+    #def __len__(self):
+        #return 0
+    def __iter__(self):
+        pass
+    def __delitem__(self):
+        pass
+
+    #def __eq__(self, other):
+        #raise NotImplementedError
+
+class Base(FieldBase, MappingMixin):
+    __slots__ = ()
+    pass

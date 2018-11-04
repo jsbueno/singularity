@@ -10,10 +10,10 @@ Done:
 7. JSON import
 8.Field value deleting
 9. copy, deepcopy and pickling work
+10. Use of dataclasses as fields
 
 TODO
 
-.Use of dataclasses as fields
 .Field handling of default/mandatory values
 .Field validators and options
 .StringField Lenght parameters
@@ -26,7 +26,7 @@ TODO
 
 . Python code generation from Schema.
 . Django-model dynamic generation
-. SQLAlchemy-model dynamic genreation
+. SQLAlchemy-model dynamic generation
 . Colander/DjangoForms dynamic generation
 . automatic model change and versioning tracking (integrated with git)
 . Captain'Proto interoperation
