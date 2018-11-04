@@ -8,6 +8,8 @@ import numbers
 import dateparser
 
 
+_SENTINEL = object()
+
 
 class Field:
     name = ""
@@ -405,7 +407,7 @@ class Base(metaclass=Meta):
     # Mapping Methods
 
 
-    def __getitem__(self, key):
+    def get(self, key, default=None):
         try:
             # getting from '_data' would be faster, but we have to provide
             # a single mechanism for data retrieval so that
@@ -423,8 +425,14 @@ class Base(metaclass=Meta):
                 item = getattr(item.d, comp)
             return item
 
-        except AttributeError as error:
-            raise KeyError from error
+        except (KeyError, AttributeError):
+            return default
+
+    def __getitem__(self, key):
+        item = self.get(key, default=_SENTINEL)
+        if item is _SENTINEL:
+            raise KeyError(key)
+        return item
 
     def __setitem__(self, item, value):
         pass
