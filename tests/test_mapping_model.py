@@ -59,7 +59,6 @@ def test_attributes_written_as_mapping_items_check_type(dog, child):
         child["father.pets.0.name"] = 10
 
 
-
 def test_nested_attributes_ending_in_list_item_can_be_written_as_mapping_items(child, pet_strict_cls):
     cat = pet_strict_cls("Mia", "cat")
     child["father.pets.0"] = cat

@@ -113,6 +113,26 @@ class Instrumentation:
         instance._data = deepcopy(self.parent._data, memo)
         return instance
 
+    def get(self, key, default=None):
+        try:
+            # getting from '_data' would be faster, but we have to provide
+            # a single mechanism for data retrieval so that
+            # access control and permissions can work later on.
+            if "." not in key:
+                return getattr(self.parent.d, key)
+            item = self.parent
+            for comp in self.parse_path(key):
+                if isinstance(comp, int):
+                    if isinstance(item, TypedSequence):
+                        item = item[comp]
+                        continue
+                    raise KeyError(f"Integer {comp!r} not allowed in this part of the path")
+                item = getattr(item.d, comp)
+            return item
+
+        except (KeyError, AttributeError):
+            return default
+
 
 def parent_field_list(bases):
     for base in bases:
@@ -219,25 +239,7 @@ class Base(metaclass=Meta):
     # Mapping Methods
 
     def get(self, key, default=None):
-        try:
-            # getting from '_data' would be faster, but we have to provide
-            # a single mechanism for data retrieval so that
-            # access control and permissions can work later on.
-            if "." not in key:
-                return getattr(self.d, key)
-
-            item = self
-            for comp in self.m.parse_path(key):
-                if isinstance(comp, int):
-                    if isinstance(item, TypedSequence):
-                        item = item[comp]
-                        continue
-                    raise KeyError(f"Integer {comp!r} not allowed in this part of the path")
-                item = getattr(item.d, comp)
-            return item
-
-        except (KeyError, AttributeError):
-            return default
+        return self.m.get(key, default)
 
     def __getitem__(self, key):
         item = self.get(key, default=_SENTINEL)
@@ -258,7 +260,7 @@ class Base(metaclass=Meta):
         else:
             settable.__setitem__(int(last_component), value)
 
-    def __delitem__(self):
+    def __delitem__(self, item):
         pass
 
     def __iter__(self):
