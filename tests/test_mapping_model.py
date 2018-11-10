@@ -66,7 +66,6 @@ def test_nested_attributes_ending_in_list_item_can_be_written_as_mapping_items(c
     assert child.d.father.d.pets[0].d.name == "Mia"
 
 
-@pytest.mark.skip
 def test_attributes_can_be_deleted_as_mapping_items(child, dog):
     del child["name"]
     assert not hasattr(child.d, "name")
@@ -75,6 +74,9 @@ def test_attributes_can_be_deleted_as_mapping_items(child, dog):
     del child["father.pets.0.name"]
     assert child.get("father.pets.0.name") is None
 
+def test_attributes_can_be_deleted_as_mapping_items_when_last_item_is_index_list(child):
+    del child["father.pets.0"]
+    assert not child["father.pets"]
 
 @pytest.mark.skip
 def test_star_deletion_works(child, cat):

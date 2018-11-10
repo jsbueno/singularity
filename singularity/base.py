@@ -133,6 +133,15 @@ class Instrumentation:
         except (KeyError, AttributeError):
             return default
 
+    def _get_inner_item(self, item):
+        if "." in item:
+            path_prefix, last_component = item.rsplit(".", 1)
+            inner = self.get(path_prefix)
+        else:
+            inner = self.parent
+            last_component = item
+        return inner, last_component
+
 
 def parent_field_list(bases):
     for base in bases:
@@ -247,21 +256,20 @@ class Base(metaclass=Meta):
             raise KeyError(key)
         return item
 
-    def __setitem__(self, item, value):
-        if "." in item:
-            item, last_component = item.rsplit(".", 1)
-            settable = self.get(item)
-        else:
-            settable = self
-            last_component = item
+    def __setitem__(self, key, value):
+        inner_item, last_component = self.m._get_inner_item(key)
 
         if not last_component.isdigit():
-            setattr(settable.d, last_component, value)
+            setattr(inner_item.d, last_component, value)
         else:
-            settable.__setitem__(int(last_component), value)
+            inner_item.__setitem__(int(last_component), value)
 
-    def __delitem__(self, item):
-        pass
+    def __delitem__(self, key):
+        inner_item, last_component = self.m._get_inner_item(key)
+        if not last_component.isdigit():
+            delattr(inner_item.d, last_component)
+        else:
+            inner_item.__delitem__(int(last_component))
 
     def __iter__(self):
         yield from self.m.defined_fields()
