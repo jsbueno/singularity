@@ -3,6 +3,6 @@ from .base import Base
 from .fields import (
     Field, StringField, NumberField,
     DateTimeField, DateField, TypeField, ListField,
-    ComputedField, TypedSequence
+    ComputedField,
 )
 

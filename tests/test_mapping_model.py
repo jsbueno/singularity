@@ -32,25 +32,39 @@ def test_nested_attributes_can_be_read_as_mapping_items_with_get(child):
     assert child.get("father.pets.0.name") == "Rex"
 
 
-@pytest.mark.skip
 def test_attributes_can_be_written_as_mapping_items(dog):
     dog["name"] = "Toto"
     assert dog["name"] == "Toto"
     assert dog.d.name == "Toto"
 
 
-@pytest.mark.skip
 def test_nested_attributes_can_be_written_as_mapping_items(child):
     child["father.name"] = "Renato"
     assert child["father.name"] == "Renato"
     assert child.d.father.d.name == "Renato"
 
 
-@pytest.mark.skip
 def test_nested_attributes_with_list_can_be_written_as_mapping_items(child):
     child["father.pets.0.name"] = "Toto"
     assert child["father.pets.0.name"] == "Toto"
     assert child.d.father.d.pets[0].d.name == "Toto"
+
+
+def test_attributes_written_as_mapping_items_check_type(dog, child):
+    with pytest.raises(TypeError):
+        dog["name"] = 10
+    with pytest.raises(TypeError):
+        child["father.name"] = 10
+    with pytest.raises(TypeError):
+        child["father.pets.0.name"] = 10
+
+
+
+def test_nested_attributes_ending_in_list_item_can_be_written_as_mapping_items(child, pet_strict_cls):
+    cat = pet_strict_cls("Mia", "cat")
+    child["father.pets.0"] = cat
+    assert child["father.pets.0.name"] == "Mia"
+    assert child.d.father.d.pets[0].d.name == "Mia"
 
 
 @pytest.mark.skip

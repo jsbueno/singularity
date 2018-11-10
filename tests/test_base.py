@@ -164,7 +164,7 @@ def test_equal_fields_imply_equality_with_listfield(pet_cls, person_cls, dog, pe
     new_dog._data.update(dog._data)
     new_person = person_cls()
     new_person._data.update(person._data)
-    new_person._data['pets'] = S.TypedSequence(pet_cls, [new_dog])
+    new_person._data['pets'] = S.fields.TypedSequence(pet_cls, [new_dog])
 
     assert new_person == person
 

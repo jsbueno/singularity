@@ -246,7 +246,17 @@ class Base(metaclass=Meta):
         return item
 
     def __setitem__(self, item, value):
-        pass
+        if "." in item:
+            item, last_component = item.rsplit(".", 1)
+            settable = self.get(item)
+        else:
+            settable = self
+            last_component = item
+
+        if not last_component.isdigit():
+            setattr(settable.d, last_component, value)
+        else:
+            settable.__setitem__(int(last_component), value)
 
     def __delitem__(self):
         pass
