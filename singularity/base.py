@@ -259,7 +259,12 @@ class Base(metaclass=Meta):
     def __setitem__(self, key, value):
         inner_item, last_component = self.m._get_inner_item(key)
 
+        print(type(inner_item))
+        if not inner_item or not isinstance(inner_item, (Base, Field, TypedSequence)):
+            raise KeyError(f"Field {key!r} is not defined for instances of {self.__class__.__name__!r}")
         if not last_component.isdigit():
+            if last_component not in inner_item.m.fields:
+                raise KeyError(f"Field {key!r} is not defined for instances of {self.__class__.__name__!r}")
             setattr(inner_item.d, last_component, value)
         else:
             inner_item.__setitem__(int(last_component), value)

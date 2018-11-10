@@ -16,6 +16,15 @@ def test_nested_attributes_can_be_read_as_mapping_items(child):
     assert child["father.name"] == "João"
 
 
+def test_accessing_non_existent_nested_attributes_should_raise_key_error(child):
+    with pytest.raises(KeyError):
+        assert child["father.uncle"] == "João"
+    with pytest.raises(KeyError):
+        assert child["uncle.uncle"] == "João"
+    with pytest.raises(KeyError):
+        assert child["father.name.first_name"] == "João"
+
+
 def test_nested_attributes_with_list_can_be_read_as_mapping_items(child):
     assert child["father.pets.0.name"] == "Rex"
 
@@ -59,11 +68,19 @@ def test_attributes_written_as_mapping_items_check_type(dog, child):
         child["father.pets.0.name"] = 10
 
 
-def test_nested_attributes_ending_in_list_item_can_be_written_as_mapping_items(child, pet_strict_cls):
-    cat = pet_strict_cls("Mia", "cat")
+def test_nested_attributes_ending_in_list_item_can_be_written_as_mapping_items(child, cat):
     child["father.pets.0"] = cat
-    assert child["father.pets.0.name"] == "Mia"
-    assert child.d.father.d.pets[0].d.name == "Mia"
+    assert child["father.pets.0.name"] == "Marie"
+    assert child.d.father.d.pets[0].d.name == "Marie"
+
+
+def test_assigining_non_existent_nested_attributes_should_raise_key_error(child):
+    with pytest.raises(KeyError):
+        child["father.uncle"] = "João"
+    with pytest.raises(KeyError):
+        child["uncle.uncle"] = "João"
+    with pytest.raises(KeyError):
+        child["father.name.first_name"] = "João"
 
 
 def test_attributes_can_be_deleted_as_mapping_items(child, dog):
@@ -77,6 +94,16 @@ def test_attributes_can_be_deleted_as_mapping_items(child, dog):
 def test_attributes_can_be_deleted_as_mapping_items_when_last_item_is_index_list(child):
     del child["father.pets.0"]
     assert not child["father.pets"]
+
+
+@pytest.mark.skip
+def test_star_attribute_writting_works(child, cat):
+    child["father.pets"].append(cat)
+    child["father.pets.*.name"] = "Toto"
+    assert len(child.d.father.d.pets) == 2
+    for pet in child["father.pets"]:
+        assert pet["name"] == "Toto"
+
 
 @pytest.mark.skip
 def test_star_deletion_works(child, cat):
@@ -95,13 +122,7 @@ def test_star_attribute_deletion_works(child, cat):
         assert hasattr(pet.d, "name")
     del child["father.pets.*.name"]
     assert len(child.d.father.d.pets) == 2
-
-
-@pytest.mark.skip
-def test_star_attribute_writting_works(child, cat):
-    child["father.pets"].append(cat)
-    child["father.pets.*.name"] = "Toto"
-    assert len(child.d.father.d.pets) == 2
     for pet in child["father.pets"]:
-        assert pet["name"] == "Toto"
+        assert not hasattr(pet.d, "name")
+
 
