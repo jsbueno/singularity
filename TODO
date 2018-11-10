@@ -11,10 +11,12 @@ Done:
 8.Field value deleting
 9. copy, deepcopy and pickling work
 10. Use of dataclasses as fields
+11. .nested field access as mapping keys
 
 TODO
 
-.nested field access as mapping keys
+.refactor main file
+. enable field-class-autoreference (and therefore graph database possibilities)
 .Field handling of default/mandatory values
 .Field validators and options
 .StringField Lenght parameters
