@@ -124,6 +124,9 @@ class TypedSequence(MutableSequence):
         self._check(value)
         self._data.insert(index, value)
 
+    def clear(self):
+        self._data.clear()
+
     def __repr__(self):
         return repr(self._data)
 

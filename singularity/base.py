@@ -285,6 +285,10 @@ class Base(metaclass=Meta):
             if not inner_item or not isinstance(inner_item, (Base, Field, TypedSequence)):
                 raise KeyError(f"Field {key!r} is not defined for instances of {self.__class__.__name__!r}")
             if not last_component.isdigit():
+                if last_component == "*":
+                    for index in range(len(inner_item)):
+                        inner_item[index] = value
+                    continue
                 if last_component not in inner_item.m.fields:
                     raise KeyError(f"Field {key!r} is not defined for instances of {self.__class__.__name__!r}")
                 setattr(inner_item.d, last_component, value)
@@ -293,10 +297,13 @@ class Base(metaclass=Meta):
 
     def __delitem__(self, key):
         for inner_item, last_component in self.m._get_inner_item(key):
-            if not last_component.isdigit():
+            if not isinstance(inner_item, TypedSequence):
                 delattr(inner_item.d, last_component)
             else:
-                inner_item.__delitem__(int(last_component))
+                if last_component == "*":
+                    inner_item.clear()
+                else:
+                    inner_item.__delitem__(int(last_component))
 
     def __iter__(self):
         yield from self.m.defined_fields()

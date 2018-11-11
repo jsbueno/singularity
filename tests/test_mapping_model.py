@@ -105,17 +105,12 @@ def test_star_attribute_writting_works(child, cat):
         assert pet["name"] == "Toto"
 
 
-@pytest.mark.skip
 def test_star_deletion_works(child, cat):
     child["father.pets"].append(cat)
     del child["father.pets.*"]
     assert len(child.d.father.d.pets) == 0
-    del child["father.pets"]
-    with pytest.raises(AttributeError):
-        child.d.father.d.pets
 
 
-@pytest.mark.skip
 def test_star_attribute_deletion_works(child, cat):
     child["father.pets"].append(cat)
     for pet in child["father.pets"]:
