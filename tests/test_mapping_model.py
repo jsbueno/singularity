@@ -91,12 +91,12 @@ def test_attributes_can_be_deleted_as_mapping_items(child, dog):
     del child["father.pets.0.name"]
     assert child.get("father.pets.0.name") is None
 
+
 def test_attributes_can_be_deleted_as_mapping_items_when_last_item_is_index_list(child):
     del child["father.pets.0"]
     assert not child["father.pets"]
 
 
-@pytest.mark.skip
 def test_star_attribute_writting_works(child, cat):
     child["father.pets"].append(cat)
     child["father.pets.*.name"] = "Toto"

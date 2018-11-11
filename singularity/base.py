@@ -94,9 +94,13 @@ class Instrumentation:
                 yield field_name
 
     def parse_path(self, path):
-        if isinstance(path, int):
-            return[path]
-        return [comp if not comp.isdigit() else int(comp) for comp in path.split(".")]
+        if "." not in path:
+            yield int(path) if path.isdigit() else path, ""
+            return
+
+        comp, reminder = path.split(".", 1)
+        yield (int(comp) if comp.isdigit() else comp), reminder
+        yield from self.parse_path(reminder)
 
     def copy(self):
         if not self.parent:
@@ -113,34 +117,53 @@ class Instrumentation:
         instance._data = deepcopy(self.parent._data, memo)
         return instance
 
-    def get(self, key, default=None):
+    def get_many(self, key, default=None):
         try:
-            # getting from '_data' would be faster, but we have to provide
-            # a single mechanism for data retrieval so that
-            # access control and permissions can work later on.
             if "." not in key:
-                return getattr(self.parent.d, key)
+                if key == "*":
+                    raise KeyError("'*' only makes sense for sequence components of the key")
+                yield getattr(self.parent.d, key)
+                return
             item = self.parent
-            for comp in self.parse_path(key):
+            for comp, path_remainder in self.parse_path(key):
+                if comp == "*":
+                    if not isinstance(item, TypedSequence):
+                        raise KeyError("'*' only makes sense for sequence components of the key")
+                    for element in item:
+                        if not path_remainder:
+                            yield element
+                        elif isinstance(element, Base):
+                            yield from element.m.get_many(path_remainder, default)
+                        else:
+                            raise KeyError(f"Components are not an instance of Base after '*' in {key!r}")
+
+                    return
                 if isinstance(comp, int):
                     if isinstance(item, TypedSequence):
                         item = item[comp]
                         continue
                     raise KeyError(f"Integer {comp!r} not allowed in this part of the path")
                 item = getattr(item.d, comp)
-            return item
+            yield item
 
         except (KeyError, AttributeError):
-            return default
+            yield default
 
-    def _get_inner_item(self, item):
-        if "." in item:
-            path_prefix, last_component = item.rsplit(".", 1)
-            inner = self.get(path_prefix)
+    def get(self, path, default=None):
+        if "*" in path:
+            raise KeyError("Invalid '*' in item path")
+        return next(self.get_many(path, default))
+
+    def _get_inner_item(self, path):
+        if "." in path:
+            path_prefix, last_component = path.rsplit(".", 1)
+            for inner in self.get_many(path_prefix):
+                yield inner, last_component
+
         else:
             inner = self.parent
-            last_component = item
-        return inner, last_component
+            last_component = path
+            yield inner, last_component
 
 
 def parent_field_list(bases):
@@ -257,24 +280,23 @@ class Base(metaclass=Meta):
         return item
 
     def __setitem__(self, key, value):
-        inner_item, last_component = self.m._get_inner_item(key)
+        for inner_item, last_component in self.m._get_inner_item(key):
 
-        print(type(inner_item))
-        if not inner_item or not isinstance(inner_item, (Base, Field, TypedSequence)):
-            raise KeyError(f"Field {key!r} is not defined for instances of {self.__class__.__name__!r}")
-        if not last_component.isdigit():
-            if last_component not in inner_item.m.fields:
+            if not inner_item or not isinstance(inner_item, (Base, Field, TypedSequence)):
                 raise KeyError(f"Field {key!r} is not defined for instances of {self.__class__.__name__!r}")
-            setattr(inner_item.d, last_component, value)
-        else:
-            inner_item.__setitem__(int(last_component), value)
+            if not last_component.isdigit():
+                if last_component not in inner_item.m.fields:
+                    raise KeyError(f"Field {key!r} is not defined for instances of {self.__class__.__name__!r}")
+                setattr(inner_item.d, last_component, value)
+            else:
+                inner_item.__setitem__(int(last_component), value)
 
     def __delitem__(self, key):
-        inner_item, last_component = self.m._get_inner_item(key)
-        if not last_component.isdigit():
-            delattr(inner_item.d, last_component)
-        else:
-            inner_item.__delitem__(int(last_component))
+        for inner_item, last_component in self.m._get_inner_item(key):
+            if not last_component.isdigit():
+                delattr(inner_item.d, last_component)
+            else:
+                inner_item.__delitem__(int(last_component))
 
     def __iter__(self):
         yield from self.m.defined_fields()
