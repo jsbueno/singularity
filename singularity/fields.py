@@ -1,3 +1,4 @@
+from abc import ABCMeta
 from collections.abc import MutableSequence
 import datetime
 import numbers
@@ -6,6 +7,51 @@ import dateparser
 
 
 _SENTINEL = object()
+
+
+def deferred_type_factory(name):
+    module_name = ""
+    if "." in name and not module_name:
+        name, module_name = name.rsplit(".", 1)
+
+    class DeferredType(metaclass=ABCMeta):
+
+        singularity_deferred_type = True
+
+        @classmethod
+        def register(cls, owner):
+            if not cls.module_name:
+                cls.module_name = owner.__module__
+            cls.qualname = owner.__qualname__
+            # cls.owner = owner
+
+        @classmethod
+        def __subclasshook__(cls, subcls):
+            if subcls.__module__ == cls.module_name and subcls.__name__ == cls.__name__:
+                # FIXME: here lies the possibility of replacing the reference to this class
+                # in the owner type for the target class.  This would bind the type of the
+                # first assigned field to the actual type.
+
+                # self.owner.type = subcls
+                return True
+            for supercls in subcls.__mro__[1:-2]:
+                if cls.__subclasshook__(supercls):
+                    return True
+            return False
+
+    DeferredType.__name__ = name
+    DeferredType.module_name = module_name
+
+    return DeferredType
+
+
+def _wraptype(type_):
+    if isinstance(type_, type):
+        return type_
+    if not isinstance(type_, str):
+        raise TypeError("Field types must be either a type or a string")
+
+    return deferred_type_factory(type_)
 
 
 class Field:
@@ -130,10 +176,15 @@ class TypedSequence(MutableSequence):
     def __repr__(self):
         return repr(self._data)
 
+class DeferrableTypeMixin:
+    def __set_name__(self, owner, name):
+        super().__set_name__(owner, name)
+        if hasattr(self.type, "singularity_deferred_type"):
+            self.type.register(owner)
 
-class TypeField(Field):
+class TypeField(DeferrableTypeMixin, Field):
     def __init__(self, type_=object, **kwargs):
-        self.type = type_
+        self.type = _wraptype(type_)
         super().__init__(**kwargs)
 
     def json(self, value):
@@ -143,9 +194,9 @@ class TypeField(Field):
         return self.type.m.from_json(value)
 
 
-class ListField(Field):
+class ListField(DeferrableTypeMixin, Field):
     def __init__(self, type_=object, **kwargs):
-        self.type = type_
+        self.type = _wraptype(type_)
         super().__init__(**kwargs)
 
     def __get__(self, instance, owner):

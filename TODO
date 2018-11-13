@@ -12,17 +12,18 @@ Done:
 9. copy, deepcopy and pickling work
 10. Use of dataclasses as fields
 11. .nested field access as mapping keys
+12. refactor main file
+13. mapping-like access for dotted attributes
+14. enable field-class-autoreference (and therefore graph database possibilities)
 
 TODO
 
-.refactor main file
-. enable field-class-autoreference (and therefore graph database possibilities)
+. Create EdgeField with Edgeproperties more proper for graphs.
 .Field handling of default/mandatory values
 .Field validators and options
 .StringField Lenght parameters
-
+. postgresql jsonb persistence (using SQLAlchemy for connections)
 . declarative data classes - for nested fields buildable in one line
-. mapping-like access for dotted attributes
 . postgresql JSONB persistence and indexing
 . Schema JSON import/export
 . workflow-states
