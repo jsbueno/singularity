@@ -18,19 +18,20 @@ Done:
 
 TODO
 
-. Create EdgeField with Edgeproperties more proper for graphs.
 .Field handling of default/mandatory values
-.Field validators and options
+.Field validators and options - including "back reference"
 .StringField Lenght parameters
 . postgresql jsonb persistence (using SQLAlchemy for connections)
 . declarative data classes - for nested fields buildable in one line
 . postgresql JSONB persistence and indexing
+. file-based persistence (use uuid's for filenames, rely on OS filesystem code for indexing)
+. cryptografy layer for the persistence
 . Schema JSON import/export
 . workflow-states
 . workflow-permissions
 . workflow history tracking
 . data history and versioning for items
-
+. Concept of "contexts" - object that will tell singularity configuration such as which backend and connection settings use for data persistence and queries, where are users and roles fetched from - equivalent to "connections" on Python SQL drivers.
 
 . Python code generation from Schema.
 . Django-model dynamic generation

@@ -177,16 +177,16 @@ class TypedSequence(MutableSequence):
         return repr(self._data)
 
 class DeferrableTypeMixin:
+    def __init__(self, type_=object, **kwargs):
+        self.type = _wraptype(type_)
+        super().__init__(**kwargs)
+
     def __set_name__(self, owner, name):
         super().__set_name__(owner, name)
         if hasattr(self.type, "singularity_deferred_type"):
             self.type.register(owner)
 
 class TypeField(DeferrableTypeMixin, Field):
-    def __init__(self, type_=object, **kwargs):
-        self.type = _wraptype(type_)
-        super().__init__(**kwargs)
-
     def json(self, value):
         return self.type.m.json(obj=value)
 
@@ -195,10 +195,6 @@ class TypeField(DeferrableTypeMixin, Field):
 
 
 class ListField(DeferrableTypeMixin, Field):
-    def __init__(self, type_=object, **kwargs):
-        self.type = _wraptype(type_)
-        super().__init__(**kwargs)
-
     def __get__(self, instance, owner):
         if instance is None:
             return self
