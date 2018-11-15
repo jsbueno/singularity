@@ -15,11 +15,11 @@ Done:
 12. refactor main file
 13. mapping-like access for dotted attributes
 14. enable field-class-autoreference (and therefore graph database possibilities)
-15. Field handling of default/mandatory values
+15. Field handling of default values
 
 TODO
 
-. Add an UUID to all objects
+. Add an "id" UUID to all objects
 
 . Fields can be rich objects themselves (not just typefields) - with a main 'value' to get bound-fields value
 . EdgeField - for 2 way object linking
@@ -56,7 +56,6 @@ Implementation Details TODO:
 
 cooking right now:
 
-    default values for fields
     uuid "id" field for all classes
     make "m" class binding use the instance id instead of a new instance of self
     make fields bindable using the same mechanism "m" class uses

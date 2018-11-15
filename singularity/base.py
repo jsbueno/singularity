@@ -1,7 +1,8 @@
 from functools import lru_cache
 import json
+import uuid
 
-from .fields import Field, ComputedField, _SENTINEL, TypedSequence
+from .fields import Field, ComputedField, _SENTINEL, TypedSequence, IDField
 
 
 class DataContainer2:
@@ -66,6 +67,9 @@ class Instrumentation:
         instance = self.owner()
         for key, value in data.items():
             field = self.fields.get(key)
+            if isinstance(field, IDField):
+                instance._data["id"] = field.from_json(value)
+                continue
             if isinstance(field, ComputedField):
                 continue
             if hasattr(field, "from_json"):
@@ -165,6 +169,11 @@ class Instrumentation:
             last_component = path
             yield inner, last_component
 
+    def settable_fields(self):
+        for key, value in self.fields.items():
+            if not isinstance(value, ComputedField) or hasattr(value, "setter"):
+                yield key
+
 
 def parent_field_list(bases):
     for base in bases:
@@ -223,14 +232,22 @@ class Base(metaclass=Meta):
     def __init__(self, *args, **kwargs):
         self._data = {}
         seem = set()
-        for field_name, arg in zip(self.m.fields, args):
+        for field_name, arg in zip(self.m.settable_fields(), args):
             setattr(self.d, field_name, arg)
             seem.add(field_name)
+
+        id_ = None
 
         for field_name, arg in kwargs.items():
             if field_name in seem:
                 raise TypeError(f"Argument {field_name!r} passed twice")
+            if field_name == "id":
+                id_ = uuid.UUID(arg) if not isinstance(arg, uuid.UUID) else arg
+                self._data["id"] = id_
+
             setattr(self.d, field_name, arg)
+        if not id_:
+            self._data["id"] = uuid.uuid4()
 
     def __eq__(self, other):
         if not isinstance(other, self.__class__):
@@ -310,3 +327,7 @@ class Base(metaclass=Meta):
 
     def __len__(self):
         return len(self.m.computed_fields) + len(self._data)
+
+    # Default field:
+
+    id = IDField()

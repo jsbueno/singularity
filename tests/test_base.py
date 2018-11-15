@@ -1,5 +1,6 @@
 from datetime import date
 from unittest import mock
+import uuid
 
 import pytest
 
@@ -103,24 +104,24 @@ def test_iterating_on_object_should_yield_defined_fields(pet_cls):
     # TODO: maybe be able to customize whether a computed field should show up?
     # An attribute could be set on the field to indicate the pre-requisite fields
     # for it to "exist".
-    assert list(pet_cls()) == ["age"]
-    assert list(pet_cls("Rex")) == ["name", "age"]
-    assert list(pet_cls("Rex", "dog")) == ["name", "species", "age"]
-    assert list(pet_cls("Rex", "dog", date(2015, 1, 1))) == ["name", "species", "birthday", "age"]
+    assert list(pet_cls()) == ["id", "age"]
+    assert list(pet_cls("Rex")) == ["id", "name", "age"]
+    assert list(pet_cls("Rex", "dog")) == ["id", "name", "species", "age"]
+    assert list(pet_cls("Rex", "dog", date(2015, 1, 1))) == ["id", "name", "species", "birthday", "age"]
 
 
 def test_dir_on_container_namespace_for_class_should_return_fields(pet_cls):
-    assert dir(pet_cls.d) == sorted(["name", "species", "birthday", "age"])
+    assert dir(pet_cls.d) == sorted(["id", "name", "species", "birthday", "age"])
 
 
 def test_dir_on_container_namespace_should_return_existing_fields(pet_cls):
     # TODO: maybe be able to customize whether a computed field should show up?
     # An attribute could be set on the field to indicate the pre-requisite fields
     # for it to "exist".
-    assert dir(pet_cls().d) == ["age"]
-    assert dir(pet_cls("Rex").d) == sorted(["name", "age"])
-    assert dir(pet_cls("Rex", "dog").d) == sorted(["name", "species", "age"])
-    assert dir(pet_cls("Rex", "dog", date(2015, 1, 1)).d) == sorted(["name", "species", "birthday", "age"])
+    assert dir(pet_cls().d) == sorted(["id", "age"])
+    assert dir(pet_cls("Rex").d) == sorted(["id", "name", "age"])
+    assert dir(pet_cls("Rex", "dog").d) == sorted(["id", "name", "species", "age"])
+    assert dir(pet_cls("Rex", "dog", date(2015, 1, 1)).d) == sorted(["id", "name", "species", "birthday", "age"])
 
 
 def test_attribute_values_can_be_deleted(dog):
@@ -187,7 +188,9 @@ def test_json_serializing(dog, person, dog_json):
 
     with mock.patch('datetime.date', FakeDate):
         assert dog.m.json() == dog_json
-        assert person.m.json() == {
+        serialized = person.m.json()
+        serialized.pop("id")
+        assert serialized == {
             "name": "João",
             "pets": [dog_json]
         }
@@ -195,7 +198,9 @@ def test_json_serializing(dog, person, dog_json):
 
 def test_json_serializing_incomplete_object(person_cls):
     p = person_cls()
-    assert p.m.json() == {
+    serialized = p.m.json()
+    serialized.pop("id")
+    assert serialized == {
         "pets": []
     }
 
@@ -207,6 +212,7 @@ def test_json_desserializing(pet_cls, dog, dog_json):
 
 def test_json_desserializing_with_listfield(person_cls, person, dog_json):
     person_json = {
+        "id": str(person.id),
         "name": "João",
         "pets": [dog_json]
     }
@@ -287,10 +293,29 @@ def test_json_serialize_desserialize_with_typefield(child):
     }
 
     data = child.m.json()
-    assert data == child_json
     new_child = Child.m.from_json(data)
+    del data["id"]
+    del data["father"]["id"]
+    del data["mother"]["id"]
+    del data["father"]["pets"][0]["id"]
+    assert data == child_json
     assert child == new_child
 
+
+def test_instances_have_intrinsc_id_field():
+    class Test(S.Base):
+        pass
+    t = Test()
+    assert t.id
+    assert isinstance(t.id, uuid.UUID)
+    assert t.d.id
+
+@pytest.mark.skip
+def test_id_field_directly_on_instance_even_for_strict_classes():
+    class Test(S.Base):
+        pass
+    t = Test()
+    assert t.id
 
 def test_bound_metadata_instance(person_cls):
     Person = person_cls

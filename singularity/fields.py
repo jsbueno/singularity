@@ -357,9 +357,12 @@ class ListField(DeferrableTypeMixin, Field):
 
 class ComputedField(Field):
     # Can be used as a decorator for the getter method.
-    def __init__(self, getter, setter=None, **kwargs):
+    def __init__(self, getter=None, setter=None, **kwargs):
         super().__init__(**kwargs)
-        self.getter = getter
+        if getter:
+            self.getter = getter
+        elif not hasattr(self, "getter"):
+            raise TypeError("A 'getter' callable must be passed in, or defined as method")
         self.setter_func = setter
 
     def __get__(self, instance, owner):
@@ -371,3 +374,16 @@ class ComputedField(Field):
         if not self.setter:
             raise TypeError("Attribute not setable")
         self.setter_func(instance, value)
+
+
+class IDField(ComputedField, UUIDField):
+    # UUIDField Inheritance is here to get the serializer methods.
+
+    def getter(self, instance):
+        # ID value is set at Base object __init__
+        return instance._data["id"]
+
+    def __set_name__(self, owner, name):
+        if name != "id":
+            raise TypeError("IDField is reserved to unique instance IDs. Use UUIDField instead")
+        super().__set_name__(owner, name)

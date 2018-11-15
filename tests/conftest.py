@@ -57,8 +57,9 @@ def strict_person(person_strict_cls, strict_dog):
 
 
 @pytest.fixture
-def dog_json():
+def dog_json(dog):
     return {
+        'id': str(dog.id),
         'name': 'Rex',
         'species': 'dog',
         'birthday': '2015-01-01',

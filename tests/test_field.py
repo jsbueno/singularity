@@ -98,7 +98,7 @@ def test_default_callable_for_fields_function():
 def test_default_callable_for_fields_function():
     import random
     class Test(S.Base, strict=True):
-        number = S.NumberField(default=lambda: random.randint(0,10))
+        number = S.NumberField(default=lambda: random.randint(1,10))
 
     t = Test()
     assert t.d.number
