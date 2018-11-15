@@ -290,3 +290,22 @@ def test_json_serialize_desserialize_with_typefield(child):
     assert data == child_json
     new_child = Child.m.from_json(data)
     assert child == new_child
+
+
+def test_bound_metadata_instance(person_cls):
+    Person = person_cls
+    p1 = Person()
+    assert p1.m.parent
+    assert not Person.m.parent
+
+
+@pytest.mark.skip
+def test_bound_metadata_instance_is_same_instance(person_cls):
+    Person = person_cls
+    p1 = Person()
+    assert p1.m.parent
+    assert not Person.m.parent
+    # Add some magic
+
+    assert p1.m.parent is Person.m.parent
+

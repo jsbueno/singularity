@@ -15,12 +15,17 @@ Done:
 12. refactor main file
 13. mapping-like access for dotted attributes
 14. enable field-class-autoreference (and therefore graph database possibilities)
+15. Field handling of default/mandatory values
 
 TODO
 
-.Field handling of default/mandatory values
-.Field validators and options - including "back reference"
-.StringField Lenght parameters
+. Add an UUID to all objects
+
+. Fields can be rich objects themselves (not just typefields) - with a main 'value' to get bound-fields value
+. EdgeField - for 2 way object linking
+. Field handling of mandatory values
+. Field validators and options - including "back reference" for simple nx1 linking.
+. StringField Lenght parameters
 . postgresql jsonb persistence (using SQLAlchemy for connections)
 . declarative data classes - for nested fields buildable in one line
 . postgresql JSONB persistence and indexing
@@ -39,7 +44,7 @@ TODO
 . Colander/DjangoForms dynamic generation
 . automatic model change and versioning tracking (integrated with git)
 . Captain'Proto interoperation
-
+. Data Instances UUID should persists across backends/serialization/desserialization/differing systems/different nodes.
 
 
 
@@ -48,4 +53,13 @@ Implementation Details TODO:
 .inter-references on the data mechanisms should use weakrefs
 . Refactor to distinct files
 . publish on pypi
+
+cooking right now:
+
+    default values for fields
+    uuid "id" field for all classes
+    make "m" class binding use the instance id instead of a new instance of self
+    make fields bindable using the same mechanism "m" class uses
+    allow rich fields that are themselves object-data classes + default "value" attribute for bound fields
+    implement EdgeField that allows object reciprocal linking
 

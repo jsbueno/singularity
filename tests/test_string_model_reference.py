@@ -55,4 +55,21 @@ def test_listfield_can_reference_own_class():
         p1.friends.append("")
 
 
+@pytest.mark.skip
+def test_edgefield_reciprocrates_inclusions():
+    class Person(S.Base):
+        name = S.StringField()
+        friends = S.EdgeField("Person")
+
+    p1 = Person("João")
+    p2 = Person("Marcelo")
+    p3 = Person("Priscila")
+    p1.friends.append(p2)
+    p1.friends.append(p3)
+    p2.friends.append(p3)
+
+    assert p2 in p1.friends and p3 in p1.friends
+    assert p1 in p2.friends and p1 in p3.friends
+    assert p3 in p2.friends and p2 in p3.friends
+
 
