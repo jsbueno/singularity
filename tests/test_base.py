@@ -1,5 +1,6 @@
 from datetime import date
 from unittest import mock
+import gc
 import uuid
 
 import pytest
@@ -300,6 +301,18 @@ def test_json_serialize_desserialize_with_typefield(child):
     del data["father"]["pets"][0]["id"]
     assert data == child_json
     assert child == new_child
+
+
+def test_instrumentation_class_hold_weakrefs_to_owner():
+    class Test(S.Base):
+        pass
+    assert Test.m.owner.__name__ == "Test"
+    test_m = Test.m
+    print("1", [gc.get_referrers(Test)])
+    del Test
+    gc.collect()
+    with pytest.raises(ReferenceError):
+        assert test_m.owner.__name__ == "Test"
 
 
 def test_instances_have_intrinsc_id_field():

@@ -1,6 +1,7 @@
 from functools import lru_cache
 import json
 import uuid
+import weakref
 
 from .fields import Field, ComputedField, _SENTINEL, TypedSequence, IDField
 
@@ -8,8 +9,8 @@ from .fields import Field, ComputedField, _SENTINEL, TypedSequence, IDField
 class DataContainer2:
     def __init__(self, parent, instance, owner):
         self._parent = parent
-        self._instance = instance
-        self._owner = owner
+        self._instance = weakref.proxy(instance) if instance else None
+        self._owner = weakref.proxy(owner)
 
     def __getattr__(self, attr):
         if attr not in self._owner.m.fields:
@@ -43,13 +44,14 @@ class Instrumentation:
     parent = None
 
     def __init__(self, owner=None):
-        self.owner = owner
+        if owner:
+            self.owner = weakref.proxy(owner)
 
     def _bind(self, parent_instance):
         instance = type(self)()
         # TODO: use a cascading dict:
         instance.__dict__ = self.__dict__.copy()
-        instance.parent = parent_instance
+        instance.parent = weakref.proxy(parent_instance, self._parent_del)
         return instance
 
     def json(self, serialize=False, obj=None):
@@ -83,7 +85,7 @@ class Instrumentation:
             setattr(instance.d, key, value)
         return instance
 
-    @lru_cache()
+    # @lru_cache()
     def __get__(self, instance, owner):
         if instance is None:
             return self
@@ -174,6 +176,9 @@ class Instrumentation:
             if not isinstance(value, ComputedField) or hasattr(value, "setter"):
                 yield key
 
+    def _parent_del(self, parent):
+        pass
+
 
 def parent_field_list(bases):
     for base in bases:
@@ -227,7 +232,7 @@ class Meta(type):
 
 
 class Base(metaclass=Meta):
-    __slots__ = ()
+    __slots__ = ("__weakref__",)
 
     def __init__(self, *args, **kwargs):
         self._data = {}
