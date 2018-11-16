@@ -310,12 +310,13 @@ def test_instances_have_intrinsc_id_field():
     assert isinstance(t.id, uuid.UUID)
     assert t.d.id
 
-@pytest.mark.skip
 def test_id_field_directly_on_instance_even_for_strict_classes():
-    class Test(S.Base):
-        pass
+    class Test(S.Base, strict=True):
+        name = S.StringField(default='bla')
     t = Test()
     assert t.id
+    with pytest.raises(AttributeError):
+        assert t.name
 
 def test_bound_metadata_instance(person_cls):
     Person = person_cls

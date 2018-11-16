@@ -8,7 +8,7 @@ Done:
 5. JSON export
 6. reactive fields
 7. JSON import
-8.Field value deleting
+8. Field value deleting
 9. copy, deepcopy and pickling work
 10. Use of dataclasses as fields
 11. .nested field access as mapping keys
@@ -16,12 +16,12 @@ Done:
 13. mapping-like access for dotted attributes
 14. enable field-class-autoreference (and therefore graph database possibilities)
 15. Field handling of default values
+16. uuid "id" field for all classes
 
 TODO
 
-. Add an "id" UUID to all objects
-
 . Fields can be rich objects themselves (not just typefields) - with a main 'value' to get bound-fields value
+. (Maybe allow an ".f" namespace to be able to retrieve bound-field objects?)
 . EdgeField - for 2 way object linking
 . Field handling of mandatory values
 . Field validators and options - including "back reference" for simple nx1 linking.
@@ -37,6 +37,7 @@ TODO
 . workflow history tracking
 . data history and versioning for items
 . Concept of "contexts" - object that will tell singularity configuration such as which backend and connection settings use for data persistence and queries, where are users and roles fetched from - equivalent to "connections" on Python SQL drivers.
+. aws aware "context" -
 
 . Python code generation from Schema.
 . Django-model dynamic generation
@@ -50,13 +51,12 @@ TODO
 
 Implementation Details TODO:
 
-.inter-references on the data mechanisms should use weakrefs
+. inter-references on the data mechanisms should use weakrefs when appropriate
 . Refactor to distinct files
 . publish on pypi
 
 cooking right now:
 
-    uuid "id" field for all classes
     make "m" class binding use the instance id instead of a new instance of self
     make fields bindable using the same mechanism "m" class uses
     allow rich fields that are themselves object-data classes + default "value" attribute for bound fields
