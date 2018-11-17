@@ -111,8 +111,14 @@ def test_iterating_on_object_should_yield_defined_fields(pet_cls):
     assert list(pet_cls("Rex", "dog", date(2015, 1, 1))) == ["id", "name", "species", "birthday", "age"]
 
 
-def test_dir_on_fields_namespace_for_class_should_return_fields(pet_cls):
+def test_dir_on_data_namespace_for_class_should_return_fields(pet_cls):
     assert dir(pet_cls.d) == sorted(["id", "name", "species", "birthday", "age"])
+
+
+def test_dir_on_fields_namespace_should_return_fields(pet_cls):
+    assert dir(pet_cls.f) == sorted(["id", "name", "species", "birthday", "age"])
+    assert dir(pet_cls().f) == sorted(["id", "name", "species", "birthday", "age"])
+    assert all(isinstance(getattr(pet_cls().f, name), S.Field) for name in pet_cls.f)
 
 
 def test_dir_on_container_namespace_should_return_existing_fields(pet_cls):

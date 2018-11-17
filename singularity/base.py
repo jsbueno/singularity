@@ -6,7 +6,7 @@ import weakref
 from .fields import Field, ComputedField, _SENTINEL, TypedSequence, IDField
 
 
-class DataContainer2:
+class DataContainer:
     _instance = None
     def __init__(self, owner):
         # self._instance = weakref.proxy(instance) if instance else None
@@ -49,13 +49,14 @@ class DataContainer2:
     def _parent_instance_del(self):
         pass
 
-#class DataContainer:
-    #@lru_cache()
-    #def __get__(self, instance, owner):
-        #return DataContainer2(parent=self, instance=instance, owner=owner)
 
 class FieldContainer:
-    pass
+    def __iter__(self):
+        yield from self.__dict__.keys()
+
+    def __dir__(self):
+        return list(self)
+
 
 class Instrumentation:
     _instance = None
@@ -236,7 +237,7 @@ class Meta(type):
         cls = super().__new__(metacls, name, bases, attrs, **kwargs)
 
         cls.f = container
-        cls.d = DataContainer2(cls)
+        cls.d = DataContainer(cls)
         cls.m = Instrumentation(owner=cls)
         cls.m.strict = strict
         cls.m.fields = container.__dict__
