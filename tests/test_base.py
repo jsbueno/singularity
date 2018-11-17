@@ -327,13 +327,12 @@ def test_bound_instrumentation_class_hold_weakrefs_to_owner_instance():
     class Test(S.Base):
         pass
     t = Test()
-    assert bool(t.m._instance)
+    assert t.m._instance()
     t_m = t.m
     del t
     gc.collect()
 
-    with pytest.raises(ReferenceError):
-        assert bool(t_m._instance)
+    assert t_m._instance() is None
 
 
 def test_instances_have_intrinsc_id_field():

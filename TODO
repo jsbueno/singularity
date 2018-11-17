@@ -17,17 +17,19 @@ Done:
 14. enable field-class-autoreference (and therefore graph database possibilities)
 15. Field handling of default values
 16. uuid "id" field for all classes
+17. Separate "m" namespace for instrumentation, "f" namespace for fields and "d" namespace for data
 
 TODO
 
 . Fields can be rich objects themselves (not just typefields) - with a main 'value' to get bound-fields value
-. (Maybe allow an ".f" namespace to be able to retrieve bound-field objects?)
 . EdgeField - for 2 way object linking
 . Field handling of mandatory values
 . Field validators and options - including "back reference" for simple nx1 linking.
 . StringField Lenght parameters
 . postgresql jsonb persistence (using SQLAlchemy for connections)
 . declarative data classes - for nested fields buildable in one line
+. create class from data, with type inference. possibility to use partial schema description and type inference on remainder of data.
+. filesystem persistence, simple index, and querying.
 . postgresql JSONB persistence and indexing
 . file-based persistence (use uuid's for filenames, rely on OS filesystem code for indexing)
 . cryptografy layer for the persistence
@@ -51,8 +53,6 @@ TODO
 
 Implementation Details TODO:
 
-. inter-references on the data mechanisms should use weakrefs when appropriate
-. Refactor to distinct files
 . publish on pypi
 
 cooking right now:

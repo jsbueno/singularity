@@ -1,12 +1,14 @@
-from functools import lru_cache
 import json
 import uuid
 import weakref
 
 from .fields import Field, ComputedField, _SENTINEL, TypedSequence, IDField
 
+
+
 class Bindable:
 
+    _cache = {}
     _instance = None
 
     def __init__(self, owner, **kwargs):
@@ -16,16 +18,36 @@ class Bindable:
 
     def _bind(self, parent_instance):
         instance = type(self)(None)
-        # TODO: use a cascading dict:
         instance.__dict__ = self.__dict__.copy()
-        instance._instance = weakref.proxy(parent_instance, self._parent_instance_del)
+        instance._instance = self._get_single_weakref(parent_instance)
         return instance
 
-    # @lru_cache()
+    def _get_single_weakref(self, instance):
+        ref_list = weakref.getweakrefs(instance)
+        if ref_list:
+            return ref_list[0]
+        return weakref.ref(instance, self._parent_instance_del)
+
     def __get__(self, instance, owner):
         if instance is None:
             return self
-        return self._bind(instance)
+        if self not in self.__class__._cache:
+            self.__class__._cache[self] = {}
+        descriptor_cache = self.__class__._cache[self]
+        # Redo the work that should be done by Python's WeakKeyDictionary
+        # because it is buggy as of Python 3.7.1 - we hit
+        # an infinite recursion on trying to use that class.
+        ref = self._get_single_weakref(instance)
+        if ref in descriptor_cache:
+            return descriptor_cache[ref]
+        descriptor_cache[ref] = bound_instance = self._bind(instance)
+        return bound_instance
+
+    def _parent_instance_del(self, ref):
+        # ref = self._get_single_weakref(instance)
+        for cache in self.__class__._cache.values():
+            cache.pop(ref, None)
+
 
 
 class DataContainer(Bindable):
@@ -33,25 +55,23 @@ class DataContainer(Bindable):
         if attr not in self._owner.m.fields:
             raise AttributeError
         attr = self._owner.f.__dict__[attr]
-        return attr.__get__(self._instance, self._owner)
+        return attr.__get__(self._instance(), self._owner)
 
     def __setattr__(self, attr, value):
         if attr in ["_instance",  "_owner", "__dict__"] or attr not in self._owner.m.fields:
             return super().__setattr__(attr, value)
         attr = self._owner.f.__dict__[attr]
-        attr.__set__(self._instance, value)
+        attr.__set__(self._instance(), value)
 
     def __delattr__(self, attr):
-        if attr not in self._instance._data:
+        if attr not in self._instance()._data:
             raise AttributeError
         attr = self._owner.f.__dict__[attr]
-        return attr.__delete__(self._instance)
+        return attr.__delete__(self._instance())
 
     def __dir__(self):
-        return list(self._instance.m.defined_fields() if self._instance else self._owner.m.defined_fields())
+        return list(self._instance().m.defined_fields() if self._instance and self._instance() else self._owner.m.defined_fields())
 
-    def _parent_instance_del(self):
-        pass
 
 
 class FieldContainer:
@@ -68,7 +88,7 @@ class Instrumentation(Bindable):
         sentinel = object()
         result = {}
         for field_name, field in self.fields.items():
-            value = getattr(obj.d if obj else self._instance.d, field_name, sentinel)
+            value = getattr(obj.d if obj else self._instance().d, field_name, sentinel)
             if value is not sentinel:
                 result[field_name] = field.json(value)
         return result if not serialize else json.dumps(result)
@@ -96,11 +116,11 @@ class Instrumentation(Bindable):
         return instance
 
     def defined_fields(self):
-        if not self._instance:
+        if not self._instance or not self._instance():
             yield from self.fields.keys()
             return None
         for field_name, field in self.fields.items():
-            if field_name in self._instance._data or field in self.computed_fields:
+            if field_name in self._instance()._data or field in self.computed_fields:
                 yield field_name
 
     def parse_path(self, path):
@@ -113,18 +133,18 @@ class Instrumentation(Bindable):
         yield from self.parse_path(reminder)
 
     def copy(self):
-        if not self._instance:
+        if not self._instance():
             raise TypeError("Only instances of dataclasses can be copied")
         instance = self._owner()
-        instance._data = self._instance._data.copy()
+        instance._data = self._instance()._data.copy()
         return instance
 
     def deepcopy(self, memo=None):
         from copy import deepcopy
-        if not self._instance:
+        if not self._instance():
             raise TypeError("Only instances of dataclasses can be deep-copied")
         instance = self._owner()
-        instance._data = deepcopy(self._instance._data, memo)
+        instance._data = deepcopy(self._instance()._data, memo)
         return instance
 
     def get_many(self, key, default=None):
@@ -132,9 +152,9 @@ class Instrumentation(Bindable):
             if "." not in key:
                 if key == "*":
                     raise KeyError("'*' only makes sense for sequence components of the key")
-                yield getattr(self._instance.d, key)
+                yield getattr(self._instance().d, key)
                 return
-            item = self._instance
+            item = self._instance()
             for comp, path_remainder in self.parse_path(key):
                 if comp == "*":
                     if not isinstance(item, TypedSequence):
@@ -171,7 +191,7 @@ class Instrumentation(Bindable):
                 yield inner, last_component
 
         else:
-            inner = self._instance
+            inner = self._instance()
             last_component = path
             yield inner, last_component
 
@@ -179,9 +199,6 @@ class Instrumentation(Bindable):
         for key, value in self.fields.items():
             if not isinstance(value, ComputedField) or hasattr(value, "setter"):
                 yield key
-
-    def _parent_instance_del(self, instance):
-        pass
 
 
 def parent_field_list(bases):
