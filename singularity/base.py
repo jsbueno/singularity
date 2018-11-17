@@ -5,13 +5,30 @@ import weakref
 
 from .fields import Field, ComputedField, _SENTINEL, TypedSequence, IDField
 
+class Bindable:
 
-class DataContainer:
     _instance = None
-    def __init__(self, owner):
-        # self._instance = weakref.proxy(instance) if instance else None
+
+    def __init__(self, owner, **kwargs):
         if owner:
             self._owner = weakref.proxy(owner)
+        super().__init__(**kwargs)
+
+    def _bind(self, parent_instance):
+        instance = type(self)(None)
+        # TODO: use a cascading dict:
+        instance.__dict__ = self.__dict__.copy()
+        instance._instance = weakref.proxy(parent_instance, self._parent_instance_del)
+        return instance
+
+    # @lru_cache()
+    def __get__(self, instance, owner):
+        if instance is None:
+            return self
+        return self._bind(instance)
+
+
+class DataContainer(Bindable):
     def __getattr__(self, attr):
         if attr not in self._owner.m.fields:
             raise AttributeError
@@ -33,19 +50,6 @@ class DataContainer:
     def __dir__(self):
         return list(self._instance.m.defined_fields() if self._instance else self._owner.m.defined_fields())
 
-    def _bind(self, parent_instance):
-        instance = type(self)(None)
-        # TODO: use a cascading dict:
-        instance.__dict__ = self.__dict__.copy()
-        instance._instance = weakref.proxy(parent_instance, self._parent_instance_del)
-        return instance
-
-    # @lru_cache()
-    def __get__(self, instance, owner):
-        if instance is None:
-            return self
-        return self._bind(instance)
-
     def _parent_instance_del(self):
         pass
 
@@ -58,19 +62,7 @@ class FieldContainer:
         return list(self)
 
 
-class Instrumentation:
-    _instance = None
-
-    def __init__(self, owner=None):
-        if owner:
-            self._owner = weakref.proxy(owner)
-
-    def _bind(self, parent_instance):
-        instance = type(self)()
-        # TODO: use a cascading dict:
-        instance.__dict__ = self.__dict__.copy()
-        instance._instance = weakref.proxy(parent_instance, self._parent_instance_del)
-        return instance
+class Instrumentation(Bindable):
 
     def json(self, serialize=False, obj=None):
         sentinel = object()
@@ -102,12 +94,6 @@ class Instrumentation:
 
             setattr(instance.d, key, value)
         return instance
-
-    # @lru_cache()
-    def __get__(self, instance, owner):
-        if instance is None:
-            return self
-        return self._bind(instance)
 
     def defined_fields(self):
         if not self._instance:
