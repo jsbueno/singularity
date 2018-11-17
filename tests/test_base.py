@@ -111,7 +111,7 @@ def test_iterating_on_object_should_yield_defined_fields(pet_cls):
     assert list(pet_cls("Rex", "dog", date(2015, 1, 1))) == ["id", "name", "species", "birthday", "age"]
 
 
-def test_dir_on_container_namespace_for_class_should_return_fields(pet_cls):
+def test_dir_on_fields_namespace_for_class_should_return_fields(pet_cls):
     assert dir(pet_cls.d) == sorted(["id", "name", "species", "birthday", "age"])
 
 
@@ -302,17 +302,32 @@ def test_json_serialize_desserialize_with_typefield(child):
     assert data == child_json
     assert child == new_child
 
-
-def test_instrumentation_class_hold_weakrefs_to_owner():
+@pytest.mark.parametrize("namespace", ("m", "d"))
+def test_instrumentation_class_hold_weakrefs_to_owner(namespace):
     class Test(S.Base):
         pass
-    assert Test.m.owner.__name__ == "Test"
-    test_m = Test.m
-    print("1", [gc.get_referrers(Test)])
+    assert getattr(Test, namespace)._owner.__name__ == "Test"
+    test_m = getattr(Test, namespace)
+    gc.collect()
+    #breakpoint()
+    print(gc.get_referrers(Test))
     del Test
     gc.collect()
     with pytest.raises(ReferenceError):
-        assert test_m.owner.__name__ == "Test"
+        assert test_m._owner.__name__ == "Test"
+
+
+def test_bound_instrumentation_class_hold_weakrefs_to_owner_instance():
+    class Test(S.Base):
+        pass
+    t = Test()
+    assert bool(t.m._instance)
+    t_m = t.m
+    del t
+    gc.collect()
+
+    with pytest.raises(ReferenceError):
+        assert bool(t_m._instance)
 
 
 def test_instances_have_intrinsc_id_field():
@@ -323,6 +338,7 @@ def test_instances_have_intrinsc_id_field():
     assert isinstance(t.id, uuid.UUID)
     assert t.d.id
 
+
 def test_id_field_directly_on_instance_even_for_strict_classes():
     class Test(S.Base, strict=True):
         name = S.StringField(default='bla')
@@ -331,11 +347,12 @@ def test_id_field_directly_on_instance_even_for_strict_classes():
     with pytest.raises(AttributeError):
         assert t.name
 
+
 def test_bound_metadata_instance(person_cls):
     Person = person_cls
     p1 = Person()
-    assert p1.m.parent
-    assert not Person.m.parent
+    assert p1.m._instance
+    assert not Person.m._instance
 
 
 @pytest.mark.skip

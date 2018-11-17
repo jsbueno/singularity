@@ -7,58 +7,75 @@ from .fields import Field, ComputedField, _SENTINEL, TypedSequence, IDField
 
 
 class DataContainer2:
-    def __init__(self, parent, instance, owner):
-        self._parent = parent
-        self._instance = weakref.proxy(instance) if instance else None
-        self._owner = weakref.proxy(owner)
-
+    _instance = None
+    def __init__(self, owner):
+        # self._instance = weakref.proxy(instance) if instance else None
+        if owner:
+            self._owner = weakref.proxy(owner)
     def __getattr__(self, attr):
         if attr not in self._owner.m.fields:
             raise AttributeError
-        attr = self._parent.__dict__[attr]
+        attr = self._owner.f.__dict__[attr]
         return attr.__get__(self._instance, self._owner)
 
     def __setattr__(self, attr, value):
-        if attr in ["_parent",  "_instance",  "_owner"] or attr not in self._owner.m.fields:
+        if attr in ["_instance",  "_owner", "__dict__"] or attr not in self._owner.m.fields:
             return super().__setattr__(attr, value)
-        attr = self._parent.__dict__[attr]
+        attr = self._owner.f.__dict__[attr]
         attr.__set__(self._instance, value)
 
     def __delattr__(self, attr):
         if attr not in self._instance._data:
             raise AttributeError
-        attr = self._parent.__dict__[attr]
+        attr = self._owner.f.__dict__[attr]
         return attr.__delete__(self._instance)
 
     def __dir__(self):
         return list(self._instance.m.defined_fields() if self._instance else self._owner.m.defined_fields())
 
+    def _bind(self, parent_instance):
+        instance = type(self)(None)
+        # TODO: use a cascading dict:
+        instance.__dict__ = self.__dict__.copy()
+        instance._instance = weakref.proxy(parent_instance, self._parent_instance_del)
+        return instance
 
-class DataContainer:
-    @lru_cache()
+    # @lru_cache()
     def __get__(self, instance, owner):
-        return DataContainer2(parent=self, instance=instance, owner=owner)
+        if instance is None:
+            return self
+        return self._bind(instance)
 
+    def _parent_instance_del(self):
+        pass
+
+#class DataContainer:
+    #@lru_cache()
+    #def __get__(self, instance, owner):
+        #return DataContainer2(parent=self, instance=instance, owner=owner)
+
+class FieldContainer:
+    pass
 
 class Instrumentation:
-    parent = None
+    _instance = None
 
     def __init__(self, owner=None):
         if owner:
-            self.owner = weakref.proxy(owner)
+            self._owner = weakref.proxy(owner)
 
     def _bind(self, parent_instance):
         instance = type(self)()
         # TODO: use a cascading dict:
         instance.__dict__ = self.__dict__.copy()
-        instance.parent = weakref.proxy(parent_instance, self._parent_del)
+        instance._instance = weakref.proxy(parent_instance, self._parent_instance_del)
         return instance
 
     def json(self, serialize=False, obj=None):
         sentinel = object()
         result = {}
         for field_name, field in self.fields.items():
-            value = getattr(obj.d if obj else self.parent.d, field_name, sentinel)
+            value = getattr(obj.d if obj else self._instance.d, field_name, sentinel)
             if value is not sentinel:
                 result[field_name] = field.json(value)
         return result if not serialize else json.dumps(result)
@@ -66,7 +83,7 @@ class Instrumentation:
     def from_json(self, data, strict=False):
         if isinstance(data, str):
             data = json.loads(data)
-        instance = self.owner()
+        instance = self._owner()
         for key, value in data.items():
             field = self.fields.get(key)
             if isinstance(field, IDField):
@@ -92,11 +109,11 @@ class Instrumentation:
         return self._bind(instance)
 
     def defined_fields(self):
-        if not self.parent:
+        if not self._instance:
             yield from self.fields.keys()
             return None
         for field_name, field in self.fields.items():
-            if field_name in self.parent._data or field in self.computed_fields:
+            if field_name in self._instance._data or field in self.computed_fields:
                 yield field_name
 
     def parse_path(self, path):
@@ -109,18 +126,18 @@ class Instrumentation:
         yield from self.parse_path(reminder)
 
     def copy(self):
-        if not self.parent:
+        if not self._instance:
             raise TypeError("Only instances of dataclasses can be copied")
-        instance = self.owner()
-        instance._data = self.parent._data.copy()
+        instance = self._owner()
+        instance._data = self._instance._data.copy()
         return instance
 
     def deepcopy(self, memo=None):
         from copy import deepcopy
-        if not self.parent:
+        if not self._instance:
             raise TypeError("Only instances of dataclasses can be deep-copied")
-        instance = self.owner()
-        instance._data = deepcopy(self.parent._data, memo)
+        instance = self._owner()
+        instance._data = deepcopy(self._instance._data, memo)
         return instance
 
     def get_many(self, key, default=None):
@@ -128,9 +145,9 @@ class Instrumentation:
             if "." not in key:
                 if key == "*":
                     raise KeyError("'*' only makes sense for sequence components of the key")
-                yield getattr(self.parent.d, key)
+                yield getattr(self._instance.d, key)
                 return
-            item = self.parent
+            item = self._instance
             for comp, path_remainder in self.parse_path(key):
                 if comp == "*":
                     if not isinstance(item, TypedSequence):
@@ -167,7 +184,7 @@ class Instrumentation:
                 yield inner, last_component
 
         else:
-            inner = self.parent
+            inner = self._instance
             last_component = path
             yield inner, last_component
 
@@ -176,7 +193,7 @@ class Instrumentation:
             if not isinstance(value, ComputedField) or hasattr(value, "setter"):
                 yield key
 
-    def _parent_del(self, parent):
+    def _parent_instance_del(self, instance):
         pass
 
 
@@ -196,7 +213,7 @@ class Meta(type):
 
     def __new__(metacls, name, bases, attrs, strict=False, **kwargs):
 
-        container = DataContainer()
+        container = FieldContainer()
         for field_name, field in parent_field_list(bases):
             # Avoid triggering descriptor mechanisms
             container.__dict__[field_name] = field
@@ -218,7 +235,8 @@ class Meta(type):
 
         cls = super().__new__(metacls, name, bases, attrs, **kwargs)
 
-        cls.d = container
+        cls.f = container
+        cls.d = DataContainer2(cls)
         cls.m = Instrumentation(owner=cls)
         cls.m.strict = strict
         cls.m.fields = container.__dict__
