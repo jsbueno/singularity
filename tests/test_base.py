@@ -308,6 +308,9 @@ def test_json_serialize_desserialize_with_typefield(child):
     assert data == child_json
     assert child == new_child
 
+
+# WEAKEREF usage test
+
 @pytest.mark.parametrize("namespace", ("m", "d"))
 def test_instrumentation_class_hold_weakrefs_to_owner(namespace):
     class Test(S.Base):
@@ -315,8 +318,8 @@ def test_instrumentation_class_hold_weakrefs_to_owner(namespace):
     assert getattr(Test, namespace)._owner.__name__ == "Test"
     test_m = getattr(Test, namespace)
     gc.collect()
-    #breakpoint()
-    print(gc.get_referrers(Test))
+    # breakpoint()
+    # print(gc.get_referrers(Test))
     del Test
     gc.collect()
     with pytest.raises(ReferenceError):
@@ -335,6 +338,19 @@ def test_bound_instrumentation_class_hold_weakrefs_to_owner_instance():
     assert t_m._instance() is None
 
 
+def test_creating_user_weakrefs_for_instances_dont_break_namespace_caching():
+    import weakref
+    class Test(S.Base):
+        pass
+    t = Test()
+    wt = weakref.ref(t)
+    t_m = t.m
+    del t
+    breakpoint()
+    pass
+
+
+
 def test_instances_have_intrinsc_id_field():
     class Test(S.Base):
         pass
@@ -342,6 +358,9 @@ def test_instances_have_intrinsc_id_field():
     assert t.id
     assert isinstance(t.id, uuid.UUID)
     assert t.d.id
+
+
+
 
 
 def test_id_field_directly_on_instance_even_for_strict_classes():
@@ -362,6 +381,7 @@ def test_bound_metadata_instance(person_cls):
 
 @pytest.mark.skip
 def test_bound_metadata_instance_is_same_instance(person_cls):
+    # ok -a distant dream, this won't work. We will have bound and unbound instances!
     Person = person_cls
     p1 = Person()
     assert p1.m.parent

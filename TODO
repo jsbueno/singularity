@@ -39,6 +39,7 @@ TODO
 . workflow history tracking
 . data history and versioning for items
 . Concept of "contexts" - object that will tell singularity configuration such as which backend and connection settings use for data persistence and queries, where are users and roles fetched from - equivalent to "connections" on Python SQL drivers.
+- in each context, a data object with a single-id is always the same instance.
 . aws aware "context" -
 
 . Python code generation from Schema.
