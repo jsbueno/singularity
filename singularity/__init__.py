@@ -5,4 +5,8 @@ from .fields import (
     DateTimeField, DateField, TypeField, ListField,
     ComputedField, EdgeField, UUIDField
 )
+from .context_ import get_context
 
+c = context = get_context()
+
+del get_context
