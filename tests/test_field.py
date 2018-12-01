@@ -135,6 +135,26 @@ def test_default_callable_as_field_method_rceives_instance():
     assert t.d.double == 4
 
 
+def test_field_setdefault_works_with_explicit_instance():
+    class Test(S.Base, strict=True):
+        somefield = S.Field()
+
+    t = Test()
+    Test.f.somefield.setdefault([], instance=t).append('test value')
+    assert t.d.somefield[0] == 'test value'
+
+
+# This will work when fields are bindable.
+@pytest.mark.skip
+def test_field_setdefault_works():
+    class Test(S.Base, strict=True):
+        somefield = S.Field()
+
+    t = Test()
+    t.f.somefield.setdefault([]).append('test value')
+    assert t.d.somefield[0] == 'test value'
+
+
 def test_uuid_field():
     class Test(S.Base, strict=True):
         other_id = S.UUIDField()

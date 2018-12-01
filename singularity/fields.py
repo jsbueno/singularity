@@ -72,33 +72,7 @@ class Field:
         except KeyError as error:
             if not hasattr(self, "default"):
                 raise AttributeError from error
-            if callable(self.default):
-                # Optionally pass instance as argument to
-                # a default method or function:
-                default_func = self.default
-                if ( # not a builtin method:
-                    not isinstance(default_func,(types.BuiltinFunctionType, types.MethodWrapperType))
-                        ) and (( # is method expecting instance
-                            isinstance(default_func, types.MethodType) and
-                            default_func.__code__.co_argcount >= 2
-                        ) or ( # is function expecting instance
-                            isinstance(default_func, types.FunctionType) and
-                            default_func.__code__.co_argcount >= 1
-                        ) or ( # Other callable object expecting instance
-                            hasattr(default_func.__call__, '__code__') and
-                            default_func.__call__.__code__.co_argcount >= 2
-                        )):
-                    default = default_func(instance=instance)
-                else:
-                    default = default_func()
-            else:
-                default = self.default
-            # ATTENTION: when workflow permissions are in place, this might trigger
-            # permission problems - but remember - default parameter
-            # setting is an action of the field creator (be it in code, or dynamic class creation)
-            # not from the one querying the system right now
-            self.__set__(instance, default)
-            return default
+            return self.setdefault(instance=instance)
 
     def __set__(self, instance, value):
         self._check(type(instance), value)
@@ -115,6 +89,37 @@ class Field:
         if not isinstance(value, self.type):
             raise TypeError(f"Field '{self.name}' of '{owner.__name__}' "
                             f"instances must be set to an instance of '{self.type.__name__}'")
+
+    def setdefault(self, default=_SENTINEL, instance=None):
+        if default is _SENTINEL:
+            default = self.default
+
+        if callable(default):
+            # Optionally pass instance as argument to
+            # a default method or function:
+            default_func = default
+            if ( # not a builtin method:
+                not isinstance(default_func,(types.BuiltinFunctionType, types.MethodWrapperType))
+                    ) and (( # is method expecting instance
+                        isinstance(default_func, types.MethodType) and
+                        default_func.__code__.co_argcount >= 2
+                    ) or ( # is function expecting instance
+                        isinstance(default_func, types.FunctionType) and
+                        default_func.__code__.co_argcount >= 1
+                    ) or ( # Other callable object expecting instance
+                        hasattr(default_func.__call__, '__code__') and
+                        default_func.__call__.__code__.co_argcount >= 2
+                    )):
+                default = default_func(instance=instance)
+            else:
+                default = default_func()
+
+        # ATTENTION: when workflow permissions are in place, this might trigger
+        # permission problems - but remember - default parameter
+        # setting is an action of the field creator (be it in code, or dynamic class creation)
+        # not from the one querying the system right now
+        self.__set__(instance, default)
+        return default
 
     def json(self, value):
         return value
