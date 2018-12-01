@@ -49,7 +49,6 @@ class Bindable:
             cache.pop(ref, None)
 
 
-
 class DataContainer(Bindable):
     def __getattr__(self, attr):
         if attr not in self._owner.m.fields:
@@ -71,7 +70,6 @@ class DataContainer(Bindable):
 
     def __dir__(self):
         return list(self._instance().m.defined_fields() if self._instance and self._instance() else self._owner.m.defined_fields())
-
 
 
 class FieldContainer:

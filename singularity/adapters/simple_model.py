@@ -6,6 +6,8 @@ import singularity
 
 
 def from_simple_model(sm_model):
+    # TODO: use a registry to avoid recreating classes for the same
+    # model in the same process.
     si_fields = OrderedDict()
     if isinstance(sm_model, type):
         sm_model = sm_model()
@@ -30,7 +32,6 @@ def from_simple_model(sm_model):
 
 
 def get_singularity_field(type_, ):
-    import singularity
     # TODO: create a field registry
     best_match = None, 9999
     for field_name, field in singularity.fields.__dict__.items():
@@ -45,10 +46,10 @@ def get_singularity_field(type_, ):
             if distance < best_match[1]:
                 best_match = field, distance
     if best_match[0] is None:
-        if isinstance(type_, sm_model):
+        if isinstance(type_, SM.Model):
             type_ = get_singularity_field(type_)
         # TODO: check for sequences.
-        new_field = TypeField(type_=type_)
+        new_field = singularity.TypeField(type_=type_)
     else:
         # TODO - add simple_model's default field value
         new_field = best_match[0]()
