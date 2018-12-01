@@ -18,11 +18,16 @@ Done:
 15. Field handling of default values
 16. uuid "id" field for all classes
 17. Separate "m" namespace for instrumentation, "f" namespace for fields and "d" namespace for data
+18. Basic transformation from Python simple_model to Singularity classes and instances
 
 TODO
 
-. Fields can be rich objects themselves (not just typefields) - with a main 'value' to get bound-fields value
+. Move nested data into simple nested dictionary/list data structure living on the context.
+   (instances just point to the proper level of data on the context)
 . EdgeField - for 2 way object linking
+. Define meta-dictionary keys to indicate reference/repetition in dictionary data. (maybe using a $ prefix for the keys?)
+. Generate class fields annotations
+. Fields can be rich objects themselves (not just typefields) - with a main 'value' to get bound-fields value
 . Field handling of mandatory values
 . Field validators and options - including "back reference" for simple nx1 linking.
 . StringField Lenght parameters
@@ -33,7 +38,7 @@ TODO
 . postgresql JSONB persistence and indexing
 . file-based persistence (use uuid's for filenames, rely on OS filesystem code for indexing)
 . cryptografy layer for the persistence
-. Schema JSON import/export
+. JSON Schema import/export
 . workflow-states
 . workflow-permissions
 . workflow history tracking
@@ -48,7 +53,7 @@ TODO
 . Colander/DjangoForms dynamic generation
 . automatic model change and versioning tracking (integrated with git)
 . Captain'Proto interoperation
-. Data Instances UUID should persists across backends/serialization/desserialization/differing systems/different nodes.
+. Data Instances UUID should persist across backends/serialization/desserialization/differing systems/different nodes.
 
 
 
@@ -62,4 +67,4 @@ cooking right now:
     make fields bindable using the same mechanism "m" class uses
     allow rich fields that are themselves object-data classes + default "value" attribute for bound fields
     implement EdgeField that allows object reciprocal linking
-
+    adapter for python simple_model (pysimplemodel) class and instances <-> transformation.
