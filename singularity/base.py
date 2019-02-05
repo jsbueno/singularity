@@ -211,11 +211,13 @@ class Meta(type):
     def __new__(metacls, name, bases, attrs, strict=False, **kwargs):
 
         container = FieldContainer()
+        computed_fields = set()
         for field_name, field in parent_field_list(bases):
             # Avoid triggering descriptor mechanisms
             container.__dict__[field_name] = field
+            if isinstance(field, ComputedField):
+                computed_fields.add(field)
 
-        computed_fields = set()
         for attr_name, value in list(attrs.items()):
             if not isinstance(value, Field):
                 continue
