@@ -346,9 +346,6 @@ def test_creating_user_weakrefs_for_instances_dont_break_namespace_caching():
     wt = weakref.ref(t)
     t_m = t.m
     del t
-    breakpoint()
-    pass
-
 
 
 def test_instances_have_intrinsc_id_field():
@@ -358,9 +355,6 @@ def test_instances_have_intrinsc_id_field():
     assert t.id
     assert isinstance(t.id, uuid.UUID)
     assert t.d.id
-
-
-
 
 
 def test_id_field_directly_on_instance_even_for_strict_classes():

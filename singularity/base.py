@@ -256,7 +256,9 @@ class Base(metaclass=Meta):
         id_ = kwargs.pop("id", None)
         if not id_:
             id_ = uuid.uuid4()
-        self._data["id"] = id_
+        elif not isinstance(id_, uuid.UUID):
+            id_ = uuid.UUID(id_)
+        self.__dict__["id"] = id_
 
         seem = set()
         for field_name, arg in zip(self.m.settable_fields(), args):
@@ -266,9 +268,6 @@ class Base(metaclass=Meta):
         for field_name, arg in kwargs.items():
             if field_name in seem:
                 raise TypeError(f"Argument {field_name!r} passed twice")
-            if field_name == "id":
-                id_ = uuid.UUID(arg) if not isinstance(arg, uuid.UUID) else arg
-                self._data["id"] = id_
 
             setattr(self.d, field_name, arg)
 

@@ -10,6 +10,11 @@ class Context:
 
 
 class MemoryContext(Context):
+    """The simplest context -
+    all data is volatile and in-memory -
+    a dictionary with key-pairs with UUID-IDs for each instance as keys
+    """
+
 
     def __init__(self):
         self.backend = "memory"
