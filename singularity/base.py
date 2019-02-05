@@ -88,7 +88,7 @@ class Instrumentation(Bindable):
         for key, value in data.items():
             field = self.fields.get(key)
             if isinstance(field, IDField):
-                instance._data["id"] = field.from_json(value)
+                instance._id = field.from_json(value)
                 continue
             if isinstance(field, ComputedField):
                 continue
@@ -126,9 +126,7 @@ class Instrumentation(Bindable):
         if not self._instance:
             raise TypeError("Only instances of dataclasses can be copied")
         instance = self._owner()
-        instance_id = instance._data["id"]
         instance._data.update(self._instance._data)
-        instance._data["id"] = instance_id
         return instance
 
     def deepcopy(self, memo=None):
@@ -249,7 +247,7 @@ class Meta(type):
 
 
 class Base(metaclass=Meta):
-    __slots__ = ("__weakref__",)
+    __slots__ = ("__weakref__", "_id")
 
     def __init__(self, *args, **kwargs):
 
@@ -260,7 +258,7 @@ class Base(metaclass=Meta):
             id_ = uuid.uuid4()
         elif not isinstance(id_, uuid.UUID):
             id_ = uuid.UUID(id_)
-        self.__dict__["id"] = id_
+        self._id = id_
 
         seem = set()
         for field_name, arg in zip(self.m.settable_fields(), args):

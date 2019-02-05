@@ -386,7 +386,7 @@ class IDField(ComputedField, UUIDField):
 
     def getter(self, instance):
         # ID value is set at Base object __init__
-        return instance.__dict__["id"]
+        return instance._id
 
     def __set_name__(self, owner, name):
         if name != "id":
